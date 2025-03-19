@@ -1,0 +1,132 @@
+name: Check
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'include/**'
+      - 'lib/**'
+      - 'spec/**'
+      - 'src/**'
+      - '**.rockspec'
+      - '.clang-format'
+      - '.clang-tidy'
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'include/**'
+      - 'lib/**'
+      - 'spec/**'
+      - 'src/**'
+      - '**.rockspec'
+      - '.clang-format'
+      - '.clang-tidy'
+
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Run clang-format on C files and headers
+        run: |
+          # "notify" me of newer clang-format version
+          if command -v clang-format-16 &> /dev/null; then
+            echo "clang-format-16 is available"
+            exit 2
+          fi
+
+          shopt -s nullglob
+          files=(src/*.c src/**/*.c include/*.h include/**/*.h)
+          if [[ "${#files[@]}" -eq 0 ]]; then
+            echo "No files found"
+            exit 1
+          fi
+          clang-format-15 --verbose --dry-run --Werror "${files[@]}"
+
+      - name: Set up Lua
+        uses: leafo/gh-actions-lua@35bcb06abec04ec87df82e08caa84d545348536e # v10.0.0
+
+      - name: Run clang-tidy on C files and headers
+        run: |
+          # "notify" me of newer clang-tidy version
+          if command -v clang-tidy-16 &> /dev/null; then
+            echo "clang-tidy-16 is available"
+            exit 2
+          fi
+
+          shopt -s nullglob
+          files=(src/*.c src/**/*.c include/*.h include/**/*.h)
+          if [[ "${#files[@]}" -eq 0 ]]; then
+            echo "No files found"
+            exit 1
+          fi
+          clang-tidy-15 --extra-arg="-I.lua/include" --warnings-as-errors="*" "${files[@]}"
+
+      - name: Set up LuaRocks
+        uses: hishamhm/gh-actions-luarocks@master
+
+      - name: Run luacheck on rockspecs and tests
+        env:
+          # renovate: datasource=github-releases depName=ammaraskar/msvc-problem-matcher
+          MSCV_PROBLEM_MATCHER_VERSION: 0.3.0
+        run: |
+          IFS=$' \n\t'; set -euxo pipefail
+
+          # install luacheck
+          luarocks install luacheck
+
+          # download and setup problem matcher for luacheck's visual_studio formatter
+          wget -q "https://raw.githubusercontent.com/ammaraskar/msvc-problem-matcher/${MSCV_PROBLEM_MATCHER_VERSION}/msvc_matcher.json" \
+            -O visual-studio-problem-matcher.json
+          echo "::add-matcher::visual-studio-problem-matcher.json"
+
+          # run luacheck
+          luacheck . --no-cache --formatter visual_studio --include-files "spec/**/*.lua" "**/*.rockspec" --exclude-files .lua .luarocks
+
+
+  test:
+    name: Test
+    needs: lint
+
+    strategy:
+      matrix:
+        os: [ ubuntu-22.04, windows-latest, macos-latest ]
+        lua_version: [ '5.1', '5.2', '5.3', '5.4', 'luajit' ]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Microsoft Visual C++ Developer Command Prompt
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+        # Will be ignored on non-Windows platforms anyway, but it's better to just skip it
+        if: matrix.os == 'windows-latest'
+
+      - name: Set up Lua
+        uses: hishamhm/gh-actions-lua@master
+        with:
+          luaVersion: ${{ matrix.lua_version }}
+
+      - name: Set up LuaRocks
+        uses: hishamhm/gh-actions-luarocks@master
+
+      - name: Build fenster
+        run: luarocks make
+        # Currently does not work for LuaJIT on Windows (lua library not found)
+        if: matrix.os != 'windows-latest' || matrix.lua_version != 'luajit'
+
+      - name: Run tests
+        run: luarocks test -- --exclude-tags needsdisplay --verbose --output TAP
+        # Currently does not work for LuaJIT on Windows (see above)
+        if: matrix.os != 'windows-latest' || matrix.lua_version != 'luajit'

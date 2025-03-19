@@ -1,0 +1,32 @@
+# clang-tidy configuration
+# See: https://clang.llvm.org/extra/clang-tidy/
+
+Checks: >-
+  -*,
+  bugprone-*,
+  
+  cert-*,
+  
+  clang-analyzer-*,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+  
+  google-*,
+  
+  misc-*,
+  
+  modernize-*,
+  
+  performance-*,
+  
+  portability-*,
+  
+  readability-*,
+
+CheckOptions:
+  misc-header-include-cycle.IgnoredFilesList: '\/lib\/compat-5\.3\/compat-5\.3\.h$'
+  misc-include-cleaner.IgnoreHeaders: '\/lib\/compat-5\.3\/compat-5\.3\.h$'
+  readability-identifier-length.IgnoredVariableNames: '^[xy]$' # allow coordinate variables
+  readability-identifier-length.IgnoredParameterNames: '^[L]$' # allow Lua state parameter
+
+FormatStyle: file
+WarningsAsErrors: ''
