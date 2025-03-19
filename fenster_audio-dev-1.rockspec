@@ -1,23 +1,22 @@
 rockspec_format = '3.0'
-package = 'fenster'
+package = 'fenster_audio'
 version = 'dev-1' -- this will be replaced by the release workflow
 source = {
-	url = 'git+https://github.com/jonasgeiler/lua-fenster',
+	url = 'git+https://github.com/jonasgeiler/lua-fenster-audio',
 	branch = 'main', -- this will be replaced by the release workflow
 }
 description = {
-	summary = 'The most minimal cross-platform GUI library - now in Lua!',
+	summary = 'The most minimal cross-platform audio playback library - now in Lua!',
 	detailed = '' ..
-		'A Lua binding for the fenster (https://github.com/zserge/fenster) ' ..
-		'C library, providing a minimal cross-platform GUI library for ' ..
-		'creating windows and drawing pixels.',
+		'A Lua binding for the fenster_audio (https://github.com/zserge/fenster) ' ..
+		'C library, providing a minimal cross-platform audio playback library for ' ..
+		'playing sound files and tones.',
 	license = 'MIT',
-	homepage = 'https://github.com/jonasgeiler/lua-fenster',
-	issues_url = 'https://github.com/jonasgeiler/lua-fenster/issues',
+	homepage = 'https://github.com/jonasgeiler/lua-fenster-audio',
+	issues_url = 'https://github.com/jonasgeiler/lua-fenster-audio/issues',
 	maintainer = 'Jonas Geiler',
 	labels = {
-		'gui', 'graphics', 'pixel', 'windowing', '2d', 'drawing', 'window',
-		'framebuffer', 'gui-library',
+		'audio', 'sound', 'alsa'
 	},
 }
 dependencies = {
@@ -33,16 +32,13 @@ build_dependencies = {
 external_dependencies = {
 	platforms = {
 		linux = {
-			X11 = {
-				library = 'X11',
+			ALSA = {
+				library = 'asound',
 			},
 		},
 		win32 = {
 			GDI32 = {
 				library = 'gdi32',
-			},
-			USER32 = {
-				library = 'user32',
 			},
 		},
 	},
@@ -50,40 +46,37 @@ external_dependencies = {
 build = {
 	type = 'builtin',
 	modules = {
-		fenster = {
+		fenster_audio = {
 			sources = 'src/main.c',
 		},
 	},
 	platforms = {
 		linux = {
 			modules = {
-				fenster = {
+				fenster_audio = {
 					libraries = {
-						'X11',
+						'asound',
 					},
 					incdirs = {
-						'$(X11_INCDIR)',
+						'$(ALSA_INCDIR)',
 					},
 					libdirs = {
-						'$(X11_LIBDIR)',
+						'$(ALSA_LIBDIR)',
 					},
 				},
 			},
 		},
 		win32 = {
 			modules = {
-				fenster = {
+				fenster_audio = {
 					libraries = {
 						'gdi32',
-						'user32',
 					},
 					incdirs = {
 						'$(GDI32_INCDIR)',
-						'$(USER32_INCDIR)',
 					},
 					libdirs = {
 						'$(GDI32_LIBDIR)',
-						'$(USER32_LIBDIR)',
 					},
 				},
 			},
@@ -91,10 +84,10 @@ build = {
 		macosx = {
 			type = 'extended',
 			modules = {
-				fenster = {
+				fenster_audio = {
 					variables = {
 						LIBFLAG_EXTRAS = {
-							'-framework', 'Cocoa',
+							'-framework', 'AudioToolbox',
 						},
 					},
 				},

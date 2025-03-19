@@ -1,0 +1,112 @@
+local fenster_audio = require('fenster_audio')
+local wav = require('demos.lib.wav')
+
+-- Hack to get the current script directory
+local dirname = './' .. (debug.getinfo(1, 'S').source:match('^@?(.*[/\\])') or '') ---@type string
+
+---@type string[] List of sound files
+local sound_files = {
+	'bad_boing.wav',
+	'banner.wav',
+	'boodoodaloop.wav',
+	'brush.wav',
+	'camera.wav',
+	'cash_register.wav',
+	'cast_a_spell_sound.wav',
+	'chime.wav',
+	'click_error.wav',
+	'coins_clinking.wav',
+	'coin.wav',
+	'complete.wav',
+	'crowd_cheer.wav',
+	'ding_ding.wav',
+	'donk.wav',
+	'drumroll.wav',
+	'girl_yeaaaaah.wav',
+	'hammer.wav',
+	'horray_fireworks.wav',
+	'icon_incorrect_hit.wav',
+	'incorrect.wav',
+	'laser_shot2.wav',
+	'laser_shot.wav',
+	'minty_attack.wav',
+	'oh_no.wav',
+	'one.wav',
+	'plus_sfx.wav',
+	'protect_sound.wav',
+	'reminder.wav',
+	'sheep_baah.wav',
+	'short_magic_shot.wav',
+	'smack.wav',
+	'splash_big.wav',
+	'splash_small.wav',
+	'ugh.wav',
+	'victory_confetti.wav',
+	'voltage.wav',
+	'water_ripples.wav',
+	'wave_alert.wav',
+	'wave.wav',
+	'whoosh.wav',
+	'wildrumble_healing.wav',
+	'window_break.wav',
+}
+
+-- Open an audioplayer
+local audioplayer = fenster_audio.open()
+
+-- Print list of sound files
+print('Available sound files:')
+local max_index_length = #tostring(#sound_files)
+for i = 1, #sound_files do
+	local index_length = #tostring(i)
+	print(string.rep(' ', max_index_length - index_length) .. i .. '. ' .. sound_files[i])
+end
+
+-- Soundboard interface loop
+while true do
+	::continue::
+	collectgarbage() -- Collect garbage to make sure loaded audio is released
+
+	-- Prompt the user to enter the sound file index
+	io.write('Enter the index of the sound file to play (or "q" to quit): ')
+	io.flush()
+
+	-- Read the sound file index
+	local sound_file_index_raw = io.read()
+	if not sound_file_index_raw or sound_file_index_raw == '' then
+		goto continue
+	end
+	if sound_file_index_raw == 'q'
+		or sound_file_index_raw == 'quit'
+		or sound_file_index_raw == 'e'
+		or sound_file_index_raw == 'exit' then
+		break
+	end
+
+	-- Parse the sound file index
+	local sound_file_index = tonumber(sound_file_index_raw)
+	if not sound_file_index or sound_file_index < 1 or sound_file_index > #sound_files then
+		print('[Error] Invalid sound file index: ' .. tostring(sound_file_index))
+		goto continue
+	end
+
+	-- Load the audio and play it
+	local sound_file = sound_files[sound_file_index]
+	local audio_buffer = wav.load(dirname .. 'assets/' .. sound_file)
+	local audio_buffer_len = #audio_buffer
+	local audio_buffer_pos = 1
+	repeat
+		local available = audioplayer.available
+		if available > 0 then
+			local curr_audio_buffer = {} ---@type number[]
+			local curr_audio_buffer_len = math.min(available, audio_buffer_len - audio_buffer_pos)
+			if curr_audio_buffer_len > 0 then
+				for i = 1, curr_audio_buffer_len do
+					curr_audio_buffer[i] = audio_buffer[audio_buffer_pos]
+					audio_buffer_pos = audio_buffer_pos + 1
+				end
+				audioplayer:write(curr_audio_buffer, curr_audio_buffer_len)
+			end
+		end
+	until audio_buffer_pos == audio_buffer_len
+end

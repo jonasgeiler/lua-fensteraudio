@@ -4,20 +4,20 @@
 # I really don't have any experience with Makefiles, so I can't guarantee that it will work on your machine.
 #
 
-all: fenster.so
+all: fenster_audio.so
 
 LD ?= gcc
 LDFLAGS ?= -shared
-X11_LIBDIR ?= /usr/lib64
-fenster.so: src/main.o
-	$(LD) $(LDFLAGS) $(LIBFLAG) -o $@ $< -L$(X11_LIBDIR) -lX11
+ALSA_LIBDIR ?= /usr/lib64
+fenster_audio.so: src/main.o
+	$(LD) $(LDFLAGS) $(LIBFLAG) -o $@ $< -L$(ALSA_LIBDIR) -lasound
 
 CC ?= gcc
 CFLAGS ?= -O2 -fPIC
 LUA_INCDIR ?= /usr/include
-X11_INCDIR ?= /usr/include
+ALSA_INCDIR ?= /usr/include
 src/main.o: src/main.c
-	$(CC) $(CFLAGS) -I$(LUA_INCDIR) -c $< -o $@ -I$(X11_INCDIR)
+	$(CC) $(CFLAGS) -I$(LUA_INCDIR) -c $< -o $@ -I$(ALSA_INCDIR)
 
 clean:
-	rm -f src/main.o fenster.so
+	rm -f src/main.o fenster_audio.so
