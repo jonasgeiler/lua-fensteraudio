@@ -34,6 +34,9 @@ function wav.load(path)
 		local chunk_id, chunk_size = string.unpack('<c4I4', chunk_header)
 
 		if chunk_id == 'fmt ' then
+			if found_format_chunk then
+				error('Duplicate "fmt " chunk found')
+			end
 			found_format_chunk = true
 
 			local format_chunk = audio:read(chunk_size)
@@ -58,6 +61,9 @@ function wav.load(path)
 				.. tostring(byte_per_sec)
 			)
 		elseif chunk_id == 'data' then
+			if found_data_chunk then
+				error('Duplicate "data" chunk found')
+			end
 			found_data_chunk = true
 
 			local chunk_end = audio:seek() + chunk_size
@@ -77,7 +83,10 @@ function wav.load(path)
 	end
 	assert(found_format_chunk, 'No "fmt " chunk found')
 	assert(found_data_chunk, 'No "data" chunk found')
-	assert(audio:seek() == total_file_size, 'Invalid ending position, expected ' .. tostring(total_file_size) .. ': ' .. tostring(audio:seek()))
+	assert(
+		audio:seek() == total_file_size,
+		'Invalid ending position, expected ' .. tostring(total_file_size) .. ': ' .. tostring(audio:seek())
+	)
 
 	audio:close()
 	return audio_buffer
