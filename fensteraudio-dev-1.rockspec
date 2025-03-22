@@ -1,5 +1,5 @@
 rockspec_format = '3.0'
-package = 'fenster_audio'
+package = 'fensteraudio'
 version = 'dev-1' -- this will be replaced by the release workflow
 source = {
 	url = 'git+https://github.com/jonasgeiler/lua-fenster-audio',
@@ -46,14 +46,14 @@ external_dependencies = {
 build = {
 	type = 'builtin',
 	modules = {
-		fenster_audio = {
+		fensteraudio = {
 			sources = 'src/main.c',
 		},
 	},
 	platforms = {
 		linux = {
 			modules = {
-				fenster_audio = {
+				fensteraudio = {
 					libraries = {
 						'asound',
 					},
@@ -68,7 +68,7 @@ build = {
 		},
 		win32 = {
 			modules = {
-				fenster_audio = {
+				fensteraudio = {
 					libraries = {
 						'gdi32',
 					},
@@ -84,7 +84,7 @@ build = {
 		macosx = {
 			type = 'extended',
 			modules = {
-				fenster_audio = {
+				fensteraudio = {
 					variables = {
 						LIBFLAG_EXTRAS = {
 							'-framework', 'AudioToolbox',

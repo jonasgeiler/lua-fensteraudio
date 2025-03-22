@@ -1,4 +1,4 @@
-local fenster_audio = require('fenster_audio')
+local fensteraudio = require('fensteraudio')
 local wav = require('demos.lib.wav')
 
 -- Hack to get the current script directory
@@ -51,8 +51,8 @@ local sound_files = {
 	'window_break.wav',
 }
 
--- Open an audioplayer
-local audioplayer = fenster_audio.open()
+-- Open an audiodevice
+local audiodevice = fensteraudio.open()
 
 -- Print list of sound files
 print('Available sound files:')
@@ -96,7 +96,7 @@ while true do
 	local audio_buffer_len = #audio_buffer
 	local audio_buffer_pos = 1
 	repeat
-		local available = audioplayer.available
+		local available = audiodevice.available
 		if available > 0 then
 			local curr_audio_buffer = {} ---@type number[]
 			local curr_audio_buffer_len = math.min(available, audio_buffer_len - audio_buffer_pos)
@@ -105,7 +105,7 @@ while true do
 					curr_audio_buffer[i] = audio_buffer[audio_buffer_pos]
 					audio_buffer_pos = audio_buffer_pos + 1
 				end
-				audioplayer:write(curr_audio_buffer, curr_audio_buffer_len)
+				audiodevice:write(curr_audio_buffer, curr_audio_buffer_len)
 			end
 		end
 	until audio_buffer_pos == audio_buffer_len

@@ -1,5 +1,5 @@
 local fenster = require('fenster')
-local fenster_audio = require('fenster_audio')
+local fensteraudio = require('fensteraudio')
 
 local function load_wav(path)
 	local audio = assert(io.open(path, "rb"))
@@ -57,7 +57,7 @@ local audio_buffer_len = #audio_buffer
 print(audio_buffer, num_channels, sample_rate)
 
 local window = fenster.open(400, 400)
-local audioplayer = fenster_audio.open()
+local audiodevice = fensteraudio.open()
 
 local start_playing = false
 local playing = false
@@ -73,7 +73,7 @@ while window:loop() and not window.keys[27] do
 	end
 
 	if playing then
-		local available = audioplayer.available
+		local available = audiodevice.available
 		if available > 0 then
 			local curr_audio_buffer = {} ---@type number[]
 			local curr_audio_buffer_len = math.min(available, audio_buffer_len - audio_buffer_pos)
@@ -88,7 +88,7 @@ while window:loop() and not window.keys[27] do
 				end
 			end
 			if playing then
-				audioplayer:write(curr_audio_buffer, curr_audio_buffer_len)
+				audiodevice:write(curr_audio_buffer, curr_audio_buffer_len)
 			end
 		end
 	end

@@ -1,7 +1,7 @@
-local fenster_audio = require('fenster_audio')
+local fensteraudio = require('fensteraudio')
 
 -- Create a sample rate and duration for the song
-local sampleRate = fenster_audio.samplerate
+local sampleRate = fensteraudio.samplerate
 local duration = 4 -- seconds
 local numSamples = sampleRate * duration
 
@@ -21,12 +21,12 @@ for i = 0, numSamples - 1 do
 	audioData[i] = sample
 end
 
-local audioplayer = fenster_audio.open()
+local audiodevice = fensteraudio.open()
 
 local audio = {} ---@type number[]
 local pos = 0
 while true do
-	local available = audioplayer.available
+	local available = audiodevice.available
 	if available > 0 then
 		for i = 0, available do
 			audio[i] = audioData[pos]
@@ -36,6 +36,6 @@ while true do
 				pos = 0
 			end
 		end
-		audioplayer:write(audio, available)
+		audiodevice:write(audio, available)
 	end
 end

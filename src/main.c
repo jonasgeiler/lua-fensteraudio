@@ -30,14 +30,14 @@
   (lua_isnoneornil(L, arg) ? def : luaL_checkinteger(L, arg))
 #endif
 
-/** Name of the audioplayer userdata and metatable */
-static const char *AUDIOPLAYER_METATABLE = "audioplayer*";
+/** Name of the audiodevice userdata and metatable */
+static const char *AUDIODEVICE_METATABLE = "audiodevice*";
 
-/** Userdata representing the fenster_audio audioplayer */
-typedef struct audioplayer {
+/** Userdata representing the fensteraudio audiodevice */
+typedef struct audiodevice {
   // "private" members
   struct fenster_audio *p_fenster_audio;
-} audioplayer;
+} audiodevice;
 
 /*
 // Utility function to dump the Lua stack for debugging
@@ -62,13 +62,13 @@ static void _dumpstack(lua_State *L) {
  */
 
 /**
- * Opens an audio player.
- * Returns an userdata representing the audio player with all the methods and
+ * Opens an audio device.
+ * Returns an userdata representing the audio device with all the methods and
  * properties we defined on the metatable.
  * @param L Lua state
  * @return Number of return values on the Lua stack
  */
-static int lfenster_audio_open(lua_State *L) {
+static int lfensteraudio_open(lua_State *L) {
   // use a temporary fenster_audio struct to copy into the "real" one later
   struct fenster_audio temp_fenster_audio = {0};
 
@@ -76,7 +76,7 @@ static int lfenster_audio_open(lua_State *L) {
   struct fenster_audio *p_fenster_audio = malloc(sizeof(struct fenster_audio));
   if (p_fenster_audio == NULL) {
     const int error = errno;
-    return luaL_error(L, "failed to allocate memory of size %d for audioplayer (%d)",
+    return luaL_error(L, "failed to allocate memory of size %d for audiodevice (%d)",
                       sizeof(struct fenster_audio), error);
   }
 
@@ -90,50 +90,50 @@ static int lfenster_audio_open(lua_State *L) {
   if (result != 0) {
     free(p_fenster_audio);
     p_fenster_audio = NULL;
-    return luaL_error(L, "failed to open audioplayer (%d)", result);
+    return luaL_error(L, "failed to open audiodevice (%d)", result);
   }
 
   // create the window userdata and initialize it
-  audioplayer *p_audioplayer = lua_newuserdata(L, sizeof(audioplayer));
-  p_audioplayer->p_fenster_audio = p_fenster_audio;
-  luaL_setmetatable(L, AUDIOPLAYER_METATABLE);
+  audiodevice *p_audiodevice = lua_newuserdata(L, sizeof(audiodevice));
+  p_audiodevice->p_fenster_audio = p_fenster_audio;
+  luaL_setmetatable(L, AUDIODEVICE_METATABLE);
   return 1;
 }
 
-/** Macro to get the audioplayer userdata from the Lua stack */
-#define check_audioplayer(L) (luaL_checkudata(L, 1, AUDIOPLAYER_METATABLE))
+/** Macro to get the audiodevice userdata from the Lua stack */
+#define check_audiodevice(L) (luaL_checkudata(L, 1, AUDIODEVICE_METATABLE))
 
-/** Macro to check if the audioplayer is closed */
-#define is_audioplayer_closed(p_audioplayer) ((p_audioplayer)->p_fenster_audio == NULL)
+/** Macro to check if the audiodevice is closed */
+#define is_audiodevice_closed(p_audiodevice) ((p_audiodevice)->p_fenster_audio == NULL)
 
 /**
- * Utility function to get the audioplayer userdata from the Lua stack and check
- * if the audioplayer is open.
+ * Utility function to get the audiodevice userdata from the Lua stack and check
+ * if the audiodevice is open.
  * @param L Lua state
- * @return The audioplayer userdata
+ * @return The audiodevice userdata
  */
-static audioplayer *check_open_audioplayer(lua_State *L) {
-  audioplayer *p_audioplayer = check_audioplayer(L);
-  if (is_audioplayer_closed(p_audioplayer)) {
-    luaL_error(L, "attempt to use a closed audioplayer");
+static audiodevice *check_open_audiodevice(lua_State *L) {
+  audiodevice *p_audiodevice = check_audiodevice(L);
+  if (is_audiodevice_closed(p_audiodevice)) {
+    luaL_error(L, "attempt to use a closed audiodevice");
   }
-  return p_audioplayer;
+  return p_audiodevice;
 }
 
 /**
- * Close the audioplayer. Does nothing if the audioplayer is already closed.
+ * Close the audiodevice. Does nothing if the audiodevice is already closed.
  * The __gc and __close meta methods also call this function, so the user
  * likely won't need to call this function manually.
  * @param L Lua state
  * @return Number of return values on the Lua stack
  */
-static int audioplayer_close(lua_State *L) {
-  audioplayer *p_audioplayer = check_open_audioplayer(L);
+static int audiodevice_close(lua_State *L) {
+  audiodevice *p_audiodevice = check_open_audiodevice(L);
 
-  // close and free audioplayer
-  fenster_audio_close(p_audioplayer->p_fenster_audio);
-  free(p_audioplayer->p_fenster_audio);
-  p_audioplayer->p_fenster_audio = NULL;
+  // close and free audiodevice
+  fenster_audio_close(p_audiodevice->p_fenster_audio);
+  free(p_audiodevice->p_fenster_audio);
+  p_audiodevice->p_fenster_audio = NULL;
 
   return 0;
 }
@@ -156,8 +156,8 @@ static lua_Integer check_num_samples(lua_State *L) {
  * @param L Lua state
  * @return Number of return values on the Lua stack
  */
-static int audioplayer_write(lua_State *L) {
-  audioplayer *p_audioplayer = check_open_audioplayer(L);
+static int audiodevice_write(lua_State *L) {
+  audiodevice *p_audiodevice = check_open_audiodevice(L);
   const lua_Integer num_samples = check_num_samples(L);
 
   // Get array of numbers from argument 2
@@ -175,31 +175,31 @@ static int audioplayer_write(lua_State *L) {
       lua_pop(L, 1);
   }
 
-  fenster_audio_write(p_audioplayer->p_fenster_audio, buf, num_samples);
+  fenster_audio_write(p_audiodevice->p_fenster_audio, buf, num_samples);
 
   return 0;
 }
 
 /**
- * Index function for the audioplayer userdata. Checks if the key exists in the
+ * Index function for the audiodevice userdata. Checks if the key exists in the
  * methods metatable and returns the method if it does. Otherwise, checks for
  * properties and returns the property value if it exists.
  * @param L Lua state
  * @return Number of return values on the Lua stack
  */
-static int audioplayer_index(lua_State *L) {
-  audioplayer *p_audioplayer = check_open_audioplayer(L);
+static int audiodevice_index(lua_State *L) {
+  audiodevice *p_audiodevice = check_open_audiodevice(L);
   const char *key = luaL_checkstring(L, 2);
 
   // check if the key exists in the methods metatable
-  luaL_getmetatable(L, AUDIOPLAYER_METATABLE);
+  luaL_getmetatable(L, AUDIODEVICE_METATABLE);
   lua_pushvalue(L, 2);
   lua_rawget(L, -2);
   if (lua_isnil(L, -1)) {
     // key not found in the methods metatable, check for properties
     if (strcmp(key, "available") == 0) {
       // retrieve the available space in the audio buffer
-      lua_pushinteger(L, fenster_audio_available(p_audioplayer->p_fenster_audio));
+      lua_pushinteger(L, fenster_audio_available(p_audiodevice->p_fenster_audio));
     } else {
       // no matching key is found, return nil
       lua_pushnil(L);
@@ -209,79 +209,79 @@ static int audioplayer_index(lua_State *L) {
 }
 
 /**
- * Close the window when the audioplayer userdata is garbage collected.
- * Just calls the close method but ignores if the audioplayer is already closed.
+ * Close the window when the audiodevice userdata is garbage collected.
+ * Just calls the close method but ignores if the audiodevice is already closed.
  * @param L Lua state
  * @return Number of return values on the Lua stack
  */
-static int audioplayer_gc(lua_State *L) {
-  audioplayer *p_audioplayer = check_audioplayer(L);
+static int audiodevice_gc(lua_State *L) {
+  audiodevice *p_audiodevice = check_audiodevice(L);
 
-  // ignore if the audioplayer is already closed
-  if (!is_audioplayer_closed(p_audioplayer)) {
-    audioplayer_close(L);
+  // ignore if the audiodevice is already closed
+  if (!is_audiodevice_closed(p_audiodevice)) {
+    audiodevice_close(L);
   }
 
   return 0;
 }
 
 /**
- * Returns a string representation of the audioplayer userdata.
+ * Returns a string representation of the audiodevice userdata.
  * @param L Lua state
  * @return Number of return values on the Lua stack
  */
-static int audioplayer_tostring(lua_State *L) {
-  audioplayer *p_audioplayer = check_audioplayer(L);
+static int audiodevice_tostring(lua_State *L) {
+  audiodevice *p_audiodevice = check_audiodevice(L);
 
-  if (is_audioplayer_closed(p_audioplayer)) {
-    lua_pushliteral(L, "audioplayer (closed)");
+  if (is_audiodevice_closed(p_audiodevice)) {
+    lua_pushliteral(L, "audiodevice (closed)");
   } else {
-    lua_pushfstring(L, "audioplayer (%p)", p_audioplayer);
+    lua_pushfstring(L, "audiodevice (%p)", p_audiodevice);
   }
   return 1;
 }
 
-/** Functions for the fenster_audio Lua module */
-static const struct luaL_Reg lfenster_audio_functions[] = {
-    {"open", lfenster_audio_open},
+/** Functions for the fensteraudio Lua module */
+static const struct luaL_Reg lfensteraudio_functions[] = {
+    {"open", lfensteraudio_open},
 
     // methods can also be used as functions with the userdata as first argument
-    {"close", audioplayer_close},
-    {"write", audioplayer_write},
+    {"close", audiodevice_close},
+    {"write", audiodevice_write},
 
     {NULL, NULL}};
 
-/** Methods for the audioplayer userdata */
-static const struct luaL_Reg audioplayer_methods[] = {
-    {"close", audioplayer_close},
-    {"write", audioplayer_write},
+/** Methods for the audiodevice userdata */
+static const struct luaL_Reg audiodevice_methods[] = {
+    {"close", audiodevice_close},
+    {"write", audiodevice_write},
 
     // metamethods
-    {"__index", audioplayer_index},
-    {"__gc", audioplayer_gc},
+    {"__index", audiodevice_index},
+    {"__gc", audiodevice_gc},
 #if LUA_VERSION_NUM >= 504
-    {"__close", audioplayer_gc},
+    {"__close", audiodevice_gc},
 #endif
-    {"__tostring", audioplayer_tostring},
+    {"__tostring", audiodevice_tostring},
 
     {NULL, NULL}};
 
 /**
- * Entry point for the fenster_audio Lua module.
+ * Entry point for the fensteraudio Lua module.
  * @param L Lua state
  * @return Number of return values on the Lua stack
  */
-FENSTER_AUDIO_EXPORT int luaopen_fenster_audio(lua_State *L) {
-  // create the audioplayer metatable
-  const int result = luaL_newmetatable(L, AUDIOPLAYER_METATABLE);
+FENSTERAUDIO_EXPORT int luaopen_fensteraudio(lua_State *L) {
+  // create the audiodevice metatable
+  const int result = luaL_newmetatable(L, AUDIODEVICE_METATABLE);
   if (result == 0) {
-    return luaL_error(L, "audioplayer metatable already exists (%s)",
-                      AUDIOPLAYER_METATABLE);
+    return luaL_error(L, "audiodevice metatable already exists (%s)",
+                      AUDIODEVICE_METATABLE);
   }
-  luaL_setfuncs(L, audioplayer_methods, 0);
+  luaL_setfuncs(L, audiodevice_methods, 0);
 
-  // create and return the fenster_audio Lua module
-  luaL_newlib(L, lfenster_audio_functions);
+  // create and return the fensteraudio Lua module
+  luaL_newlib(L, lfensteraudio_functions);
   lua_pushinteger(L, FENSTER_SAMPLE_RATE);
   lua_setfield(L, -2, "samplerate");
   lua_pushinteger(L, FENSTER_AUDIO_BUFSZ);
