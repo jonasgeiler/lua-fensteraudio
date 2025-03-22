@@ -8,6 +8,7 @@ local wav = {}
 
 ---Load a WAV file.
 ---TODO: Make Lua 5.1 and 5.2 compatible (no string.unpack)
+---TODO: Return (nil, string) instead of using assert()/error(), and return (table, nil) on success
 ---@version >5.3
 ---@param path string
 ---@return number[]
