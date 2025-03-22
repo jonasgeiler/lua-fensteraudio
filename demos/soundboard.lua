@@ -90,16 +90,18 @@ while true do
 		goto continue
 	end
 
-	-- Load the audio and play it
+	-- Load the audio
 	local sound_file = sound_files[sound_file_index]
 	local audio_buffer = wav.load(dirname .. 'assets/' .. sound_file)
 	local audio_buffer_len = #audio_buffer
 	local audio_buffer_pos = 1
+
+	-- Play the audio
+	local curr_audio_buffer = {} ---@type number[]
 	repeat
 		local available = audiodevice:available()
 		if available > 0 then
-			local curr_audio_buffer = {} ---@type number[]
-			local curr_audio_buffer_len = math.min(available, audio_buffer_len - audio_buffer_pos)
+			local curr_audio_buffer_len = math.min(available, audio_buffer_len - (audio_buffer_pos - 1))
 			if curr_audio_buffer_len > 0 then
 				for i = 1, curr_audio_buffer_len do
 					curr_audio_buffer[i] = audio_buffer[audio_buffer_pos]
@@ -108,5 +110,5 @@ while true do
 				audiodevice:write(curr_audio_buffer, curr_audio_buffer_len)
 			end
 		end
-	until audio_buffer_pos == audio_buffer_len
+	until audio_buffer_pos > audio_buffer_len
 end

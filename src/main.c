@@ -214,6 +214,8 @@ static int audiodevice_write(lua_State *L) {
   audiodevice *p_audiodevice = check_open_audiodevice(L);
   lua_Integer samples_length = check_samples(L);
   lua_Integer samples_end = luaL_optinteger(L, 3, samples_length);
+  luaL_argcheck(L, samples_end <= samples_length, 3,
+                "end index must be less than or equal to the samples length");
 
   // read samples from the table
   int is_number;

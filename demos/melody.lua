@@ -24,18 +24,18 @@ end
 local audiodevice = fensteraudio.open()
 
 local pos = 1
+local audio = {} ---@type number[]
 while true do
 	local available = audiodevice:available()
 	if available > 0 then
-		local audio = {} ---@type number[]
 		for i = 1, available do
 			audio[i] = audioData[pos]
 
 			pos = pos + 1
-			if pos == numSamples then
+			if pos > numSamples then
 				pos = 1
 			end
 		end
-		audiodevice:write(audio)
+		audiodevice:write(audio, available)
 	end
 end

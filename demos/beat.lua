@@ -8,7 +8,7 @@ local u = 0
 while true do
 	local available_samples = audiodevice:available()
 	if available_samples > 0 then
-		for i = 0, available_samples do
+		for i = 1, available_samples do
 			u = u + 1
 			local x = math.floor(u * 80 / 441)
 			audio[i] = ((((x >> 10) & 42) * x) & 0xff) / 256
