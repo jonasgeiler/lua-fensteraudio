@@ -6,7 +6,7 @@ local audio = {} ---@type number[]
 
 local u = 0
 while true do
-	local available_samples = audiodevice.available
+	local available_samples = audiodevice:available()
 	if available_samples > 0 then
 		for i = 0, available_samples do
 			u = u + 1

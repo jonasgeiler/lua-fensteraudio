@@ -73,7 +73,7 @@ while window:loop() and not window.keys[27] do
 	end
 
 	if playing then
-		local available = audiodevice.available
+		local available = audiodevice:available()
 		if available > 0 then
 			local curr_audio_buffer = {} ---@type number[]
 			local curr_audio_buffer_len = math.min(available, audio_buffer_len - audio_buffer_pos)

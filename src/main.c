@@ -139,16 +139,15 @@ static int audiodevice_close(lua_State *L) {
 }
 
 /**
- * Utility function to get the number of samples from the Lua stack and check if
- * it's within bounds.
+ * Returns the available space in the audio buffer.
  * @param L Lua state
- * @return The number of samples
+ * @return Number of return values on the Lua stack
  */
-static lua_Integer check_num_samples(lua_State *L) {
-  const lua_Integer num_samples = luaL_checkinteger(L, 3);
-  luaL_argcheck(L, num_samples >= 0 && num_samples < FENSTER_AUDIO_BUFSZ, 3,
-                "sample number must be in range 0-" STRING(FENSTER_AUDIO_BUFSZ));
-  return num_samples;
+static int audiodevice_available(lua_State *L) {
+  audiodevice *p_audiodevice = check_open_audiodevice(L);
+
+  lua_pushinteger(L, fenster_audio_available(p_audiodevice->p_fenster_audio));
+  return 1;
 }
 
 /**
@@ -158,9 +157,6 @@ static lua_Integer check_num_samples(lua_State *L) {
  */
 static int audiodevice_write(lua_State *L) {
   audiodevice *p_audiodevice = check_open_audiodevice(L);
-  const lua_Integer num_samples = check_num_samples(L);
-
-  // Get array of numbers from argument 2
   luaL_checktype(L, 2, LUA_TTABLE);
   const lua_Unsigned buf_len = lua_rawlen(L, 2);
   float *buf = malloc(buf_len * sizeof(float));
@@ -175,37 +171,23 @@ static int audiodevice_write(lua_State *L) {
       lua_pop(L, 1);
   }
 
-  fenster_audio_write(p_audiodevice->p_fenster_audio, buf, num_samples);
+  fenster_audio_write(p_audiodevice->p_fenster_audio, buf, buf_len);
 
   return 0;
 }
 
 /**
  * Index function for the audiodevice userdata. Checks if the key exists in the
- * methods metatable and returns the method if it does. Otherwise, checks for
- * properties and returns the property value if it exists.
+ * methods metatable and returns the method if it does.
  * @param L Lua state
  * @return Number of return values on the Lua stack
  */
 static int audiodevice_index(lua_State *L) {
-  audiodevice *p_audiodevice = check_open_audiodevice(L);
-  const char *key = luaL_checkstring(L, 2);
-
   // check if the key exists in the methods metatable
   luaL_getmetatable(L, AUDIODEVICE_METATABLE);
   lua_pushvalue(L, 2);
   lua_rawget(L, -2);
-  if (lua_isnil(L, -1)) {
-    // key not found in the methods metatable, check for properties
-    if (strcmp(key, "available") == 0) {
-      // retrieve the available space in the audio buffer
-      lua_pushinteger(L, fenster_audio_available(p_audiodevice->p_fenster_audio));
-    } else {
-      // no matching key is found, return nil
-      lua_pushnil(L);
-    }
-  }
-  return 1;  // return either the method or the property value
+  return 1;  // return the method or nil if it doesn't exist
 }
 
 /**
@@ -247,6 +229,7 @@ static const struct luaL_Reg lfensteraudio_functions[] = {
 
     // methods can also be used as functions with the userdata as first argument
     {"close", audiodevice_close},
+    {"available", audiodevice_available},
     {"write", audiodevice_write},
 
     {NULL, NULL}};
@@ -254,6 +237,7 @@ static const struct luaL_Reg lfensteraudio_functions[] = {
 /** Methods for the audiodevice userdata */
 static const struct luaL_Reg audiodevice_methods[] = {
     {"close", audiodevice_close},
+    {"available", audiodevice_available},
     {"write", audiodevice_write},
 
     // metamethods

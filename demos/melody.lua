@@ -26,7 +26,7 @@ local audiodevice = fensteraudio.open()
 local audio = {} ---@type number[]
 local pos = 0
 while true do
-	local available = audiodevice.available
+	local available = audiodevice:available()
 	if available > 0 then
 		for i = 0, available do
 			audio[i] = audioData[pos]

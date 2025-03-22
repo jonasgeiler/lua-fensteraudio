@@ -68,7 +68,7 @@ while true do
 	collectgarbage() -- Collect garbage to make sure loaded audio is released
 
 	-- Prompt the user to enter the sound file index
-	io.write('Enter the index of the sound file to play (or "q" to quit): ')
+	io.write('> Enter the index of the sound file to play (or "q" to quit): ')
 	io.flush()
 
 	-- Read the sound file index
@@ -86,7 +86,7 @@ while true do
 	-- Parse the sound file index
 	local sound_file_index = tonumber(sound_file_index_raw)
 	if not sound_file_index or sound_file_index < 1 or sound_file_index > #sound_files then
-		print('[Error] Invalid sound file index: ' .. tostring(sound_file_index))
+		print('Invalid sound file index: ' .. tostring(sound_file_index))
 		goto continue
 	end
 
@@ -96,7 +96,7 @@ while true do
 	local audio_buffer_len = #audio_buffer
 	local audio_buffer_pos = 1
 	repeat
-		local available = audiodevice.available
+		local available = audiodevice:available()
 		if available > 0 then
 			local curr_audio_buffer = {} ---@type number[]
 			local curr_audio_buffer_len = math.min(available, audio_buffer_len - audio_buffer_pos)
