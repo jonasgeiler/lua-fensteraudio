@@ -55,6 +55,7 @@ local sound_files = {
 local audiodevice = fensteraudio.open()
 
 -- Print list of sound files
+::list::
 print('Available sound files:')
 local max_index_length = #tostring(#sound_files)
 for i = 1, #sound_files do
@@ -68,11 +69,13 @@ while true do
 	collectgarbage() -- Collect garbage to make sure loaded audio is released
 
 	-- Prompt the user to enter the sound file index
-	io.write('> Enter the index of the sound file to play (or "q" to quit): ')
+	io.write('> Enter the name or index of the sound file to play (or "h" for help): ')
 	io.flush()
 
 	-- Read the sound file index
 	local sound_file_index_raw = io.read()
+
+	-- Handle special commands
 	if not sound_file_index_raw or sound_file_index_raw == '' then
 		goto continue
 	end
@@ -82,16 +85,41 @@ while true do
 		or sound_file_index_raw == 'exit' then
 		break
 	end
+	if sound_file_index_raw == 'l'
+		or sound_file_index_raw == 'ls'
+		or sound_file_index_raw == 'list' then
+		goto list
+	end
+	if sound_file_index_raw == 'h'
+		or sound_file_index_raw == 'help' then
+		print('Enter the name or index of a sound file to play it.')
+		print('Enter "l" or "list" to list the available sound files.')
+		print('Enter "q" or "quit" to quit.')
+		goto continue
+	end
 
 	-- Parse the sound file index
 	local sound_file_index = tonumber(sound_file_index_raw)
 	if not sound_file_index or sound_file_index < 1 or sound_file_index > #sound_files then
-		print('Invalid sound file index: ' .. tostring(sound_file_index))
-		goto continue
+		local found = false
+		for i = 1, #sound_files do
+			if sound_files[i] == sound_file_index_raw then
+				found = true
+				sound_file_index = i
+				break
+			end
+		end
+		if not found then
+			print('Invalid sound file index or name.')
+			goto continue
+		end
 	end
 
-	-- Load the audio
+	-- Get the name of the sound file
 	local sound_file = sound_files[sound_file_index]
+	print('Playing "' .. sound_file .. '"...')
+
+	-- Load the audio
 	local audio_buffer = wav.load(dirname .. 'assets/' .. sound_file)
 	local audio_buffer_len = #audio_buffer
 	local audio_buffer_pos = 1
