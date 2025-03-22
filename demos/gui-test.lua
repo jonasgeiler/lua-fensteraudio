@@ -77,18 +77,20 @@ while window:loop() and not window.keys[27] do
 		if available > 0 then
 			local curr_audio_buffer = {} ---@type number[]
 			local curr_audio_buffer_len = math.min(available, audio_buffer_len - audio_buffer_pos)
-			for i = 0, curr_audio_buffer_len do
-				curr_audio_buffer[i] = audio_buffer[audio_buffer_pos]
-
-				audio_buffer_pos = audio_buffer_pos + 1
-				if audio_buffer_pos == audio_buffer_len then
-					playing = false
-					print('Stop')
-					break
+			if curr_audio_buffer_len > 0 then
+				for i = 1, curr_audio_buffer_len do
+					curr_audio_buffer[i] = audio_buffer[audio_buffer_pos]
+	
+					audio_buffer_pos = audio_buffer_pos + 1
+					if audio_buffer_pos == audio_buffer_len then
+						playing = false
+						print('Stop')
+						break
+					end
 				end
-			end
-			if playing then
-				audiodevice:write(curr_audio_buffer, curr_audio_buffer_len)
+				if playing then
+					audiodevice:write(curr_audio_buffer, curr_audio_buffer_len)
+				end
 			end
 		end
 	end

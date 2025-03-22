@@ -12,7 +12,7 @@ local beatDuration = 60 / bpm
 
 -- Generate PCM audio data
 local audioData = {}
-for i = 0, numSamples - 1 do
+for i = 1, numSamples do
 	local time = i / sampleRate
 	local noteIndex = math.floor(time / beatDuration) % #melody + 1
 	local frequency = melody[noteIndex]
@@ -23,19 +23,19 @@ end
 
 local audiodevice = fensteraudio.open()
 
-local audio = {} ---@type number[]
-local pos = 0
+local pos = 1
 while true do
 	local available = audiodevice:available()
 	if available > 0 then
-		for i = 0, available do
+		local audio = {} ---@type number[]
+		for i = 1, available do
 			audio[i] = audioData[pos]
 
 			pos = pos + 1
 			if pos == numSamples then
-				pos = 0
+				pos = 1
 			end
 		end
-		audiodevice:write(audio, available)
+		audiodevice:write(audio)
 	end
 end

@@ -3,7 +3,6 @@
 #include <errno.h>
 #include <lauxlib.h>
 #include <lua.h>
-#include <stdint.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,8 +34,8 @@ static const char *AUDIODEVICE_METATABLE = "audiodevice*";
 
 /** Userdata representing the fensteraudio audiodevice */
 typedef struct audiodevice {
-  // "private" members
   struct fenster_audio *p_fenster_audio;
+  float samples[FENSTER_AUDIO_BUFSZ];
 } audiodevice;
 
 /*
@@ -76,8 +75,9 @@ static int lfensteraudio_open(lua_State *L) {
   struct fenster_audio *p_fenster_audio = malloc(sizeof(struct fenster_audio));
   if (p_fenster_audio == NULL) {
     const int error = errno;
-    return luaL_error(L, "failed to allocate memory of size %d for audiodevice (%d)",
-                      sizeof(struct fenster_audio), error);
+    return luaL_error(
+        L, "failed to allocate memory of size %d for audiodevice (%d)",
+        sizeof(struct fenster_audio), error);
   }
 
   // copy temporary fenster_audio struct into the "real" one
@@ -96,6 +96,7 @@ static int lfensteraudio_open(lua_State *L) {
   // create the window userdata and initialize it
   audiodevice *p_audiodevice = lua_newuserdata(L, sizeof(audiodevice));
   p_audiodevice->p_fenster_audio = p_fenster_audio;
+  memset(p_audiodevice->samples, 0, sizeof(p_audiodevice->samples));
   luaL_setmetatable(L, AUDIODEVICE_METATABLE);
   return 1;
 }
@@ -104,7 +105,8 @@ static int lfensteraudio_open(lua_State *L) {
 #define check_audiodevice(L) (luaL_checkudata(L, 1, AUDIODEVICE_METATABLE))
 
 /** Macro to check if the audiodevice is closed */
-#define is_audiodevice_closed(p_audiodevice) ((p_audiodevice)->p_fenster_audio == NULL)
+#define is_audiodevice_closed(p_audiodevice) \
+  ((p_audiodevice)->p_fenster_audio == NULL)
 
 /**
  * Utility function to get the audiodevice userdata from the Lua stack and check
@@ -150,6 +152,59 @@ static int audiodevice_available(lua_State *L) {
   return 1;
 }
 
+// Operations that an object must define to mimic a table
+#define TABLE_READ 1
+#define TABLE_WRITE 2
+#define TABLE_LENGTH 4
+#define TABLE_READWRITE (TABLE_READ | TABLE_WRITE)
+
+/**
+ * Check whether the field 'key' exists in the table at index -negative_index.
+ * @param L Lua state
+ * @param key Key to check for
+ * @param negative_index Index of the table on the Lua stack, will be negated
+ * @return 1 if the field exists, 0 otherwise
+ */
+static int check_field(lua_State *L, const char *key, int negative_index) {
+  lua_pushstring(L, key);
+  return (lua_rawget(L, -negative_index) != LUA_TNIL);
+}
+
+/**
+ * Check that 'arg' either is a table or can behave like one, that is,
+ * has a metatable with the required metamethods.
+ * @param L Lua state
+ * @param index Index of the object on the Lua stack
+ * @param what Operations that the object must define to mimic a table
+ */
+static void check_table(lua_State *L, int index, int what) {
+  if (lua_type(L, index) != LUA_TTABLE) {  // is it not a table?
+    int pop_count = 1;                     // number of elements to pop
+    if (lua_getmetatable(L, index) &&      // must have metatable
+        (!(what & TABLE_READ) || check_field(L, "__index", ++pop_count)) &&
+        (!(what & TABLE_WRITE) || check_field(L, "__newindex", ++pop_count)) &&
+        (!(what & TABLE_LENGTH) || check_field(L, "__len", ++pop_count))) {
+      lua_pop(L, pop_count);  // pop metatable and tested metamethods
+    } else {
+      luaL_checktype(L, index, LUA_TTABLE);  // force an error
+    }
+  }
+}
+
+/**
+ * Utility function to get the length of the samples array from the Lua stack if
+ * it's a readable table and within the buffer size.
+ * @param L Lua state
+ * @return The length of the samples array
+ */
+static lua_Integer check_samples(lua_State *L) {
+  check_table(L, 2, TABLE_READ | TABLE_LENGTH);
+  const lua_Integer samples_length = luaL_len(L, 2);
+  luaL_argcheck(L, samples_length <= FENSTER_AUDIO_BUFSZ, 2,
+                "samples size exceeds audio buffer size");
+  return samples_length;
+}
+
 /**
  * TODO
  * @param L Lua state
@@ -157,21 +212,21 @@ static int audiodevice_available(lua_State *L) {
  */
 static int audiodevice_write(lua_State *L) {
   audiodevice *p_audiodevice = check_open_audiodevice(L);
-  luaL_checktype(L, 2, LUA_TTABLE);
-  const lua_Unsigned buf_len = lua_rawlen(L, 2);
-  float *buf = malloc(buf_len * sizeof(float));
-  if (buf == NULL) {
-      return luaL_error(L, "failed to allocate memory of size %d for audio buffer",
-                      buf_len * sizeof(float));
-  }
-  for (lua_Unsigned i = 0; i < buf_len; i++) {
-      lua_pushinteger(L, i + 1);
-      lua_gettable(L, 2);
-      buf[i] = (float) luaL_checknumber(L, -1);
-      lua_pop(L, 1);
+  lua_Integer samples_length = check_samples(L);
+  lua_Integer samples_end = luaL_optinteger(L, 3, samples_length);
+
+  // read samples from the table
+  int is_number;
+  for (lua_Integer i = 0; i < samples_end; i++) {
+    lua_geti(L, 2, i + 1);
+    p_audiodevice->samples[i] = (float)lua_tonumberx(L, -1, &is_number);
+    luaL_argcheck(L, is_number, 2, "samples must be a table of numbers");
+    lua_pop(L, 1);
   }
 
-  fenster_audio_write(p_audiodevice->p_fenster_audio, buf, buf_len);
+  // write samples to the audiodevice buffer
+  fenster_audio_write(p_audiodevice->p_fenster_audio, p_audiodevice->samples,
+                      samples_end);
 
   return 0;
 }
