@@ -201,7 +201,7 @@ static lua_Integer check_samples(lua_State *L) {
   check_table(L, 2, TABLE_READ | TABLE_LENGTH);
   const lua_Integer samples_length = luaL_len(L, 2);
   luaL_argcheck(L, samples_length <= FENSTER_AUDIO_BUFSZ, 2,
-                "samples size exceeds audio buffer size");
+                "samples size exceeds audio buffer size of " STRING(FENSTER_AUDIO_BUFSZ));
   return samples_length;
 }
 
