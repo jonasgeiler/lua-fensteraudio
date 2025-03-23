@@ -9,6 +9,9 @@
 #define FENSTER_AUDIO_BUFSZ 8192
 #endif
 
+#include <stdint.h>
+#include <stdlib.h>
+
 #if defined(__APPLE__)
 #include <AudioToolbox/AudioQueue.h>
 struct fenster_audio {

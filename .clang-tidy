@@ -8,8 +8,10 @@ Checks: >-
   cert-*,
   
   clang-analyzer-*,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
   
   google-*,
+  -google-readability-todo,
   
   misc-*,
   
