@@ -10,6 +10,8 @@ jobs:
   update-libraries:
     name: Update Libraries
 
+    if: false # TODO: Enable
+
     runs-on: ubuntu-latest
     defaults:
       run:

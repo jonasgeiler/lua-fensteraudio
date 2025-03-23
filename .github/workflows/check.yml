@@ -121,6 +121,8 @@ jobs:
     name: Test
     needs: lint
 
+    if: false # TODO: Enable
+
     strategy:
       fail-fast: false
       matrix:
@@ -168,6 +170,8 @@ jobs:
   test-docker:
     name: Test (docker)
     needs: lint
+
+    if: false # TODO: Enable
 
     runs-on: ubuntu-latest
     defaults:

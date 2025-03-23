@@ -14,6 +14,8 @@ jobs:
     name: LuaRocks Upload & GitHub Release
     needs: check
 
+    if: false # TODO: Enable
+
     runs-on: ubuntu-latest
     defaults:
       run:
