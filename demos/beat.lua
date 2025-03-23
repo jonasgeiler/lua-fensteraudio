@@ -3,7 +3,6 @@ local fensteraudio = require('fensteraudio')
 local audiodevice = fensteraudio.open()
 
 local audio = {} ---@type number[]
-
 local u = 0
 while true do
 	local available_samples = audiodevice:available()

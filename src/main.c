@@ -324,7 +324,8 @@ FENSTERAUDIO_EXPORT int luaopen_fensteraudio(lua_State *L) {
   luaL_setfuncs(L, audiodevice_methods, 0);
 
   // create and return the fensteraudio Lua module
-  luaL_newlib(L, lfensteraudio_functions);
+  luaL_newlib(  // NOLINT(readability-math-missing-parentheses)
+      L, lfensteraudio_functions);
   lua_pushinteger(L, FENSTER_SAMPLE_RATE);
   lua_setfield(L, -2, "samplerate");
   lua_pushinteger(L, FENSTER_AUDIO_BUFSZ);
