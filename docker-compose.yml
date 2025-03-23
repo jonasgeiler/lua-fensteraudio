@@ -53,6 +53,7 @@ services:
     build:
       <<: *build_preset
       args:
+        # TODO: Renovate bot config
         BASE_IMAGE: nickblah/lua:5.1-luarocks
 
   lua-5_2:
