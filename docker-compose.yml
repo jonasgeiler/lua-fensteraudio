@@ -2,7 +2,6 @@ name: lua-fenster-audio
 
 
 x-build-preset: &build_preset
-  # TODO: Something fails when using COMPOSE_BAKE=true, report the problem?
   dockerfile_inline: |-
     ARG BASE_IMAGE=nickblah/lua:5.4-luarocks
     FROM $${BASE_IMAGE}
@@ -53,7 +52,11 @@ services:
     build:
       <<: *build_preset
       args:
-        # TODO: Renovate bot config
+        IMAGE_REPOSITORY: nickblah/lua
+        # renovate: datasource=docker depName=nickblah/lua
+        IMAGE_VERSION: 5.1-luarocks
+
+        # TODO: Remove
         BASE_IMAGE: nickblah/lua:5.1-luarocks
 
   lua-5_2:
