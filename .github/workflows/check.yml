@@ -46,7 +46,7 @@ jobs:
       - name: Run clang-format on C files and headers
         run: |
           IFS=$' \n\t'; set -ux
-          
+
           # "notify" me of newer clang-format version
           if command -v clang-format-19 &> /dev/null; then
             echo 'clang-format-19 is available'
@@ -64,13 +64,13 @@ jobs:
       - name: Run clang-tidy on C files and headers
         run: |
           IFS=$' \n\t'; set -ux
-          
+
           # "notify" me of newer clang-tidy version
           if command -v clang-tidy-19 &> /dev/null; then
             echo 'clang-tidy-19 is available'
             exit 2
           fi
-          
+
           # get required header files
           sudo apt-get install --yes --no-install-recommends \
             libx11-dev \
@@ -164,14 +164,12 @@ jobs:
         run: luarocks make
 
       - name: Run tests
-        run: luarocks test -- --exclude-tags needsdisplay --verbose --output TAP
+        run: luarocks test -- --exclude-tags needsspeaker --verbose --output TAP
 
 
   test-docker:
     name: Test (docker)
     needs: lint
-
-    if: false # TODO: Enable
 
     runs-on: ubuntu-latest
     defaults:
@@ -184,7 +182,7 @@ jobs:
 
       - name: Run Tests in Docker
         env:
-          EXCLUDE_TAGS: needsdisplay
+          EXCLUDE_TAGS: needsspeaker
           # renovate: datasource=github-releases depName=docker/compose
           COMPOSE_VERSION: v2.34.0
         run: |
@@ -195,6 +193,6 @@ jobs:
           sudo wget -q "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-x86_64" \
             -O "${compose_plugin_path}"
           docker compose version
-          
+
           # Run docker compose
           docker compose up --abort-on-container-failure --yes --quiet-pull
