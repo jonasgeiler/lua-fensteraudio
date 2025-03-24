@@ -127,15 +127,15 @@ jobs:
       matrix:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
         lua_version: [ '5.1', '5.2', '5.3', '5.4', 'luajit-2.0', 'luajit-2.1' ]
-        #exclude:
+        exclude:
           # Currently does not work for LuaJIT on Windows (Lua library not found)
           #- os: windows-latest
           #  lua_version: 'luajit-2.0'
           #- os: windows-latest
           #  lua_version: 'luajit-2.1'
           # Currently does not work for LuaJIT 2.0 on macOS (Architecture not supported)
-          #- os: macos-latest
-          #  lua_version: 'luajit-2.0'
+          - os: macos-latest
+            lua_version: 'luajit-2.0'
     runs-on: ${{ matrix.os }}
 
     steps:

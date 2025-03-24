@@ -37,8 +37,8 @@ external_dependencies = {
 			},
 		},
 		win32 = {
-			GDI32 = {
-				library = 'gdi32',
+			WINMM = {
+				library = 'winmm',
 			},
 		},
 	},
@@ -70,13 +70,13 @@ build = {
 			modules = {
 				fensteraudio = {
 					libraries = {
-						'gdi32',
+						'winmm',
 					},
 					incdirs = {
-						'$(GDI32_INCDIR)',
+						'$(WINMM_INCDIR)',
 					},
 					libdirs = {
-						'$(GDI32_LIBDIR)',
+						'$(WINMM_LIBDIR)',
 					},
 				},
 			},
