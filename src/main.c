@@ -216,7 +216,8 @@ static int audiodevice_write(lua_State *L) {
   lua_Integer samples_length = check_samples(L);
   lua_Integer samples_end = luaL_optinteger(L, 3, samples_length);
   luaL_argcheck(L, samples_end >= 0 && samples_end <= samples_length, 3,
-                "end index must be in the range of 0 to less than or equal to the samples length");
+                "end index must be in the range of 0 to less than or equal to "
+                "the samples length");
 
   // read samples from the table
   int is_number;
@@ -224,8 +225,10 @@ static int audiodevice_write(lua_State *L) {
     lua_geti(L, 2, i + 1);
     p_audiodevice->samples[i] = (float)lua_tonumberx(L, -1, &is_number);
     luaL_argcheck(L, is_number, 2, "samples must be a table of numbers");
-    luaL_argcheck(L, p_audiodevice->samples[i] >= -1.0f && p_audiodevice->samples[i] <= 1.0f, 2,
-                  "samples must be in the range of -1.0 to 1.0");
+    luaL_argcheck(
+        L,
+        p_audiodevice->samples[i] >= -1.0f && p_audiodevice->samples[i] <= 1.0f,
+        2, "samples must be in the range of -1.0 to 1.0");
     lua_pop(L, 1);
   }
 
