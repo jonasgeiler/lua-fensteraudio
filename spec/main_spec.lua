@@ -227,7 +227,7 @@ describe('fensteraudio', function()
 				return self.duration
 			end
 
-			function noise_generator:__index(_)
+			function noise_generator.__index(_)
 				return math.random(-1, 1)
 			end
 
