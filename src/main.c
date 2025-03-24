@@ -85,7 +85,7 @@ static int lfensteraudio_open(lua_State *L) {
   //       do I still need this?
   memcpy(p_fenster_audio, &temp_fenster_audio, sizeof(struct fenster_audio));
 
-  // open window and check success
+  // open audiodevice and check success
   const int result = fenster_audio_open(p_fenster_audio);
   if (result != 0) {
     free(p_fenster_audio);
@@ -93,7 +93,7 @@ static int lfensteraudio_open(lua_State *L) {
     return luaL_error(L, "failed to open audiodevice (%d)", result);
   }
 
-  // create the window userdata and initialize it
+  // create the audiodevice userdata and initialize it
   audiodevice *p_audiodevice = lua_newuserdata(L, sizeof(audiodevice));
   p_audiodevice->p_fenster_audio = p_fenster_audio;
   memset(p_audiodevice->samples, 0, sizeof(p_audiodevice->samples));
@@ -251,7 +251,7 @@ static int audiodevice_index(lua_State *L) {
 }
 
 /**
- * Close the window when the audiodevice userdata is garbage collected.
+ * Close the audiodevice when the audiodevice userdata is garbage collected.
  * Just calls the close method but ignores if the audiodevice is already closed.
  * @param L Lua state
  * @return Number of return values on the Lua stack
