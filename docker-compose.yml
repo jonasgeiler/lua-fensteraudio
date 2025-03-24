@@ -42,7 +42,7 @@ x-service-preset: &service_preset
   command: |-
     '
     luarocks make
-    luarocks test -- --verbose ${EXCLUDE_TAGS:+--exclude-tags ${EXCLUDE_TAGS:-}}
+    luarocks test -- --verbose
     '
 
 

@@ -207,7 +207,7 @@ static lua_Integer check_samples(lua_State *L) {
 }
 
 /**
- * TODO
+ * TODO: Improve param checks and error messages and other things
  * @param L Lua state
  * @return Number of return values on the Lua stack
  */
