@@ -52,11 +52,6 @@ services:
     build:
       <<: *build_preset
       args:
-        IMAGE_REPOSITORY: nickblah/lua
-        # renovate: datasource=docker depName=nickblah/lua
-        IMAGE_VERSION: 5.1-luarocks
-
-        # TODO: Remove
         BASE_IMAGE: nickblah/lua:5.1-luarocks
 
   lua-5_2:
