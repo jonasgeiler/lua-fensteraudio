@@ -151,7 +151,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get install --yes --no-install-recommends libasound2-dev
-          sudo echo 'pcm.!default { type null }' > /etc/asound.conf
+          echo 'pcm.!default { type null }' | sudo tee /etc/asound.conf > /dev/null
 
       - name: Set up Lua
         uses: luarocks/gh-actions-lua@master
