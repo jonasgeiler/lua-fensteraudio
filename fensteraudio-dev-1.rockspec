@@ -2,7 +2,7 @@ rockspec_format = '3.0'
 package = 'fensteraudio'
 version = 'dev-1' -- this will be replaced by the release workflow
 source = {
-	url = 'git+https://github.com/jonasgeiler/lua-fenster-audio',
+	url = 'git+https://github.com/jonasgeiler/lua-fensteraudio',
 	branch = 'main', -- this will be replaced by the release workflow
 }
 description = {
@@ -12,8 +12,8 @@ description = {
 		'C library, providing a minimal cross-platform audio playback library for ' ..
 		'playing sound files and tones.',
 	license = 'MIT',
-	homepage = 'https://github.com/jonasgeiler/lua-fenster-audio',
-	issues_url = 'https://github.com/jonasgeiler/lua-fenster-audio/issues',
+	homepage = 'https://github.com/jonasgeiler/lua-fensteraudio',
+	issues_url = 'https://github.com/jonasgeiler/lua-fensteraudio/issues',
 	maintainer = 'Jonas Geiler',
 	labels = {
 		'audio', 'sound', 'alsa'

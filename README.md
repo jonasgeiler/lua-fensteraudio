@@ -1,4 +1,4 @@
-# lua-fenster-audio
+# lua-fensteraudio
 
 > The most minimal cross-platform audio playback library - now in Lua!
 

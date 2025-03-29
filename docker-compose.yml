@@ -1,4 +1,4 @@
-name: lua-fenster-audio
+name: lua-fensteraudio
 
 
 x-build-preset: &build_preset
