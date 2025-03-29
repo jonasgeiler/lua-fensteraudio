@@ -10,7 +10,7 @@ description = {
 	detailed = '' ..
 		'A Lua binding for the fenster_audio (https://github.com/zserge/fenster) ' ..
 		'C library, providing a minimal cross-platform audio playback library for ' ..
-		'playing sound files and tones.',
+		'playing samples and sounds.',
 	license = 'MIT',
 	homepage = 'https://github.com/jonasgeiler/lua-fensteraudio',
 	issues_url = 'https://github.com/jonasgeiler/lua-fensteraudio/issues',
