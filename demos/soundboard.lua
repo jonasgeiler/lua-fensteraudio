@@ -5,6 +5,9 @@ local wav = require('demos.lib.wav')
 local dirname = './' .. (debug.getinfo(1, 'S').source:match('^@?(.*[/\\])') or '') ---@type string
 
 ---@type string[] List of sound files
+---
+--- NOTE: I have to convert wav files to the right sample rate (and channel count) before I can play them:
+--- `mkdir resampled && for f in *.wav; do ffmpeg -i "$f" -ar 44100 -ac 1 "resampled/$f"; done`
 local sound_files = {
 	'bad_boing.wav',
 	'banner.wav',
