@@ -16,6 +16,7 @@ description = {
 	issues_url = 'https://github.com/jonasgeiler/lua-fensteraudio/issues',
 	maintainer = 'Jonas Geiler',
 	labels = {
+		-- TODO: Define keywords here and on luarocks.org
 		'audio', 'sound', 'alsa'
 	},
 }
