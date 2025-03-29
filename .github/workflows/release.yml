@@ -14,8 +14,6 @@ jobs:
     name: LuaRocks Upload & GitHub Release
     needs: check
 
-    if: false # TODO: Enable
-
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -39,8 +37,8 @@ jobs:
           IFS=$' \n\t'; set -ux
           
           version="${GITHUB_REF_NAME}"
-          rockspec="fenster-${version#v}-1.rockspec"
-          git mv fenster-dev-1.rockspec "${rockspec}"
+          rockspec="fensteraudio-${version#v}-1.rockspec"
+          git mv fensteraudio-dev-1.rockspec "${rockspec}"
           sed -i -E "s/\bversion\s*=\s*('|\"|\[\[)\s*[a-zA-Z0-9.-]+\s*('|\"|\]\])/version = '${version#v}-1'/" "${rockspec}"
           sed -i -E "s/\bbranch\s*=\s*('|\"|\[\[)\s*[a-zA-Z0-9.-_\/]+\s*('|\"|\]\])/tag = '$version'/" "${rockspec}"
           git diff
@@ -58,5 +56,5 @@ jobs:
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: |
-            fenster-*-1.rockspec
-            fenster-*-1.src.rock
+            fensteraudio-*-1.rockspec
+            fensteraudio-*-1.src.rock
