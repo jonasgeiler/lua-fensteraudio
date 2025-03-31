@@ -129,6 +129,7 @@ while true do
 
 	-- Play the audio
 	local curr_audio_buffer = {} ---@type number[]
+	-- TODO: Use while loop
 	repeat
 		local available = audiodevice:available()
 		if available > 0 then
