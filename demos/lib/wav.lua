@@ -166,8 +166,8 @@ function wav.load(path)
 	-- Read "BitsPerSample"
 	local bits_per_sample, bits_per_sample_err = read_uint(2, 'bits per sample')
 	if not bits_per_sample then return nil, bits_per_sample_err end
-	if bits_per_sample ~= 16 then
-		return nil, 'Invalid bits per sample, expected 16: ' .. tostring(bits_per_sample)
+	if bits_per_sample ~= 8 and bits_per_sample ~= 16 and bits_per_sample ~= 24 and bits_per_sample ~= 32 then
+		return nil, 'Invalid bits per sample, expected 8 or 16 or 24 or 32: ' .. tostring(bits_per_sample)
 	end
 	-- Remaining checks
 	local expected_byte_per_chunk = nbr_channels * bits_per_sample / 8
@@ -187,12 +187,21 @@ function wav.load(path)
 		return nil, 'Failed to jump to "data" chunk: ' .. tostring(data_chunk_jump_err)
 	end
 	local chunk_end = wav_file:seek() + data_chunk_size
+	local bytes_per_sample = math.floor(bits_per_sample / 8)
+	local to_float_divisor = math.floor(2 ^ (bits_per_sample - 1))
 	local samples = {} ---@type number[]
 	local samples_index = 1
 	while wav_file:seek() < chunk_end do
-		local integer_sample, sample_err = read_int(2, 'sample')
-		if not integer_sample then return nil, sample_err end
-		local float_sample = integer_sample / 32768
+		local float_sample ---@type number
+		if bits_per_sample == 8 then
+			local uint_sample, sample_err = read_uint(bytes_per_sample, 'sample')
+			if not uint_sample then return nil, sample_err end
+			float_sample = (uint_sample - to_float_divisor) / to_float_divisor
+		else
+			local int_sample, sample_err = read_int(bytes_per_sample, 'sample')
+			if not int_sample then return nil, sample_err end
+			float_sample = int_sample / to_float_divisor
+		end
 		samples[samples_index] = float_sample
 		samples_index = samples_index + 1
 	end
