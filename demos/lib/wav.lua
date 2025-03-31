@@ -1,96 +1,225 @@
-local assert = assert
 local tostring = tostring
 local io = io
 local string = string
-local table = table
+local math = math
 
 local wav = {}
 
 ---Load a WAV file.
----TODO: Make Lua 5.1 and 5.2 compatible (no string.unpack)
----TODO: Return (nil, string) instead of using assert()/error(), and return (table, nil) on success
----@version >5.3
 ---@param path string
----@return number[]
+---@return number[]|nil, string|nil
 ---@nodiscard
 function wav.load(path)
-	local audio = assert(io.open(path, 'rb'))
+	local wav_file, wav_file_err = io.open(path, 'rb')
+	if not wav_file then
+		return nil, 'Failed to open WAV file: ' .. tostring(wav_file_err)
+	end
 
-	local master_riff_chunk = audio:read(12)
-	assert(master_riff_chunk, 'Invalid master RIFF chunk, possibly early EOF: ' .. tostring(master_riff_chunk))
-	---@type string, integer, string
-	local file_type_chunk_id, file_size, file_format_id =
-		string.unpack('<c4I4c4', master_riff_chunk)
-	assert(file_type_chunk_id == 'RIFF', 'Invalid file type chunk ID, expected "RIFF": ' .. tostring(file_type_chunk_id))
-	assert(file_format_id == 'WAVE', 'Invalid file format ID, expected "WAVE": ' .. tostring(file_format_id))
+	---Read the next n bytes as a string.
+	---@param bytes integer
+	---@param name string
+	---@return string|nil, string|nil
+	---@nodiscard
+	local function read_string(bytes, name)
+		local str = wav_file:read(bytes) ---@type string
+		if not str or #str ~= bytes then
+			return nil, 'Failed to read ' .. tostring(name) .. ', possibly early EOF'
+		end
+		return str, nil
+	end
 
-	local total_file_size = file_size + 8
-	local found_format_chunk = false
-	local found_data_chunk = false
-	local audio_buffer = {} ---@type number[]
-	while audio:seek() < total_file_size do
-		local chunk_header = audio:read(8)
-		assert(chunk_header, 'Invalid chunk header, possibly early EOF: ' .. tostring(chunk_header))
-		---@type string, integer
-		local chunk_id, chunk_size = string.unpack('<c4I4', chunk_header)
+	---Read the next n bytes as a signed integer.
+	---@param name string
+	---@return integer|nil, string|nil
+	---@nodiscard
+	local function read_int16(name)
+		local raw, raw_err = read_string(2, name)
+		if not raw then return nil, raw_err end
+		local byte1, byte2 = string.byte(raw, 1, 2)
+		if not byte1 or not byte2 then
+			return nil, 'Failed to read ' .. tostring(name) .. ' bytes, possibly early EOF'
+		end
+		local int16 = byte1 + byte2 * 0x100
+		if int16 > 0x7FFF then
+			int16 = int16 - 0x10000
+		end
+		if int16 ~= int16 or int16 == math.huge or int16 == -math.huge then
+			return nil, 'Invalid ' .. tostring(name) .. ', got Inf/NaN: ' .. tostring(int16)
+		end
+		return int16, nil
+	end
 
+	---Read the next 2 bytes as an unsigned integer.
+	---@param name string
+	---@return integer|nil, string|nil
+	---@nodiscard
+	local function read_uint16(name)
+		local raw, raw_err = read_string(2, name)
+		if not raw then return nil, raw_err end
+		local byte1, byte2 = string.byte(raw, 1, 2)
+		if not byte1 or not byte2 then
+			return nil, 'Failed to read ' .. tostring(name) .. ' bytes, possibly early EOF'
+		end
+		local uint16 = byte1 + byte2 * 0x100
+		if uint16 ~= uint16 or uint16 == math.huge or uint16 == -math.huge then
+			return nil, 'Invalid ' .. tostring(name) .. ', got Inf/NaN: ' .. tostring(uint16)
+		end
+		return uint16, nil
+	end
+
+	---Read the next 4 bytes as an unsigned integer.
+	---@param name string
+	---@return integer|nil, string|nil
+	---@nodiscard
+	local function read_uint32(name)
+		local raw, raw_err = read_string(4, name)
+		if not raw then return nil, raw_err end
+		local byte1, byte2, byte3, byte4 = string.byte(raw, 1, 4)
+		if not byte1 or not byte2 or not byte3 or not byte4 then
+			return nil, 'Failed to read ' .. tostring(name) .. ' bytes, possibly early EOF'
+		end
+		local uint32 = byte1 + byte2 * 0x100 + byte3 * 0x10000 + byte4 * 0x1000000
+		if uint32 ~= uint32 or uint32 == math.huge or uint32 == -math.huge then
+			return nil, 'Invalid ' .. tostring(name) .. ', got Inf/NaN: ' .. tostring(uint32)
+		end
+		return uint32, nil
+	end
+
+	--[[ Read master "RIFF" chunk ]]
+	-- Read "FileTypeBlocID"
+	local file_type_chunk_id, file_type_chunk_id_err = read_string(4, 'file type chunk ID')
+	if not file_type_chunk_id then return nil, file_type_chunk_id_err end
+	if file_type_chunk_id ~= 'RIFF' then
+		return nil, 'Invalid file type chunk ID, expected "RIFF": ' .. tostring(file_type_chunk_id)
+	end
+	-- Read "FileSize"
+	local file_size, file_size_err = read_uint32('file size')
+	if not file_size then return nil, file_size_err end
+	if file_size < 36 then
+		return nil, 'Invalid file size, expected at least 36 bytes: ' .. tostring(file_size)
+	end
+	-- Read "FileFormatID"
+	local file_format_id, file_format_id_err = read_string(4, 'file format ID')
+	if not file_format_id then return nil, file_format_id_err end
+	if file_format_id ~= 'WAVE' then
+		return nil, 'Invalid file format ID, expected "WAVE": ' .. tostring(file_format_id)
+	end
+
+	local format_chunk_position = -1
+	local data_chunk_position = -1
+	local data_chunk_size = -1
+	while wav_file:seek() <= file_size do
+		--[[ Read chunk header ]]
+		-- Read "BlocID"
+		local chunk_id, chunk_id_err = read_string(4, 'chunk ID')
+		if not chunk_id then return nil, chunk_id_err end
+		-- Read "BlocSize"
+		local chunk_size, chunk_size_err = read_uint32('chunk size')
+		if not chunk_size then return nil, chunk_size_err end
+		local expected_max_chunk_size = (file_size + 8) - wav_file:seek()
+		if chunk_size > expected_max_chunk_size then
+			return nil,
+				'Invalid chunk size, expected at most ' .. tostring(expected_max_chunk_size) .. ': '
+				.. tostring(chunk_size)
+		end
+
+		-- Save position, if it is a known chunk
 		if chunk_id == 'fmt ' then
-			if found_format_chunk then
-				error('Duplicate "fmt " chunk found')
+			if format_chunk_position ~= -1 then
+				return nil, 'Duplicate "fmt " chunk found'
 			end
-			found_format_chunk = true
-
-			local format_chunk = audio:read(chunk_size)
-			assert(format_chunk, 'Invalid format chunk, possibly early EOF: ' .. tostring(format_chunk))
-			---@type integer, integer, integer, integer, integer, integer
-			local audio_format, nbr_channels, sample_rate, byte_per_sec, byte_per_chunk, bits_per_sample =
-				string.unpack('<I2I2I4I4I2I2', format_chunk)
-			assert(audio_format == 1, 'Invalid audio format, expected 1 (PCM integer): ' .. tostring(audio_format))
-			assert(nbr_channels == 1, 'Invalid number of channels, expected 1 (Mono): ' .. tostring(nbr_channels))
-			assert(sample_rate == 44100, 'Invalid sample rate, expected 44100 (Hz): ' .. tostring(sample_rate))
-			assert(bits_per_sample == 16, 'Invalid bits per sample, expected 16: ' .. tostring(bits_per_sample))
-			local expected_byte_per_chunk = nbr_channels * bits_per_sample / 8
-			assert(
-				byte_per_chunk == expected_byte_per_chunk,
-				'Invalid byte per chunk, expected ' .. tostring(expected_byte_per_chunk) .. ': '
-				.. tostring(byte_per_chunk)
-			)
-			local expected_byte_per_sec = sample_rate * expected_byte_per_chunk
-			assert(
-				byte_per_sec == expected_byte_per_sec,
-				'Invalid byte per second, expected ' .. tostring(expected_byte_per_sec) .. ': '
-				.. tostring(byte_per_sec)
-			)
+			format_chunk_position = wav_file:seek()
 		elseif chunk_id == 'data' then
-			if found_data_chunk then
-				error('Duplicate "data" chunk found')
+			if data_chunk_position ~= -1 then
+				return nil, 'Duplicate "data" chunk found'
 			end
-			found_data_chunk = true
+			data_chunk_position = wav_file:seek()
+			data_chunk_size = chunk_size
+		end
 
-			local chunk_end = audio:seek() + chunk_size
-			while audio:seek() < chunk_end do
-				local integer_sample_raw = audio:read(2)
-				if not integer_sample_raw then
-					error('Invalid sample, possibly early EOF: ' .. tostring(integer_sample_raw))
-				end
-				local integer_sample = string.unpack('<i2', integer_sample_raw) ---@type integer
-
-				local float_sample = integer_sample / 32768
-				table.insert(audio_buffer, float_sample)
-			end
-		else
-			audio:seek('cur', chunk_size) -- Skip unknown chunks
+		-- Skip to next chunk
+		local _, next_chunk_jump_err = wav_file:seek('cur', chunk_size)
+		if next_chunk_jump_err then
+			return nil, 'Failed to jump to next chunk: ' .. tostring(next_chunk_jump_err)
 		end
 	end
-	assert(found_format_chunk, 'No "fmt " chunk found')
-	assert(found_data_chunk, 'No "data" chunk found')
-	assert(
-		audio:seek() == total_file_size,
-		'Invalid ending position, expected ' .. tostring(total_file_size) .. ': ' .. tostring(audio:seek())
-	)
+	if format_chunk_position == -1 then
+		return nil, 'Missing "fmt " chunk'
+	end
+	if data_chunk_position == -1 or data_chunk_size == -1 then
+		return nil, 'Missing "data" chunk'
+	end
 
-	audio:close()
-	return audio_buffer
+	--[[ Read "fmt " chunk ]]
+	local _, format_chunk_jump_err = wav_file:seek('set', format_chunk_position)
+	if format_chunk_jump_err then
+		return nil, 'Failed to jump to "fmt " chunk: ' .. tostring(format_chunk_jump_err)
+	end
+	-- Read "AudioFormat"
+	local audio_format, audio_format_err = read_uint16('audio format')
+	if not audio_format then return nil, audio_format_err end
+	if audio_format ~= 1 then
+		return nil, 'Invalid audio format, expected 1 (PCM integer): ' .. tostring(audio_format)
+	end
+	-- Read "NbrChannels"
+	local nbr_channels, nbr_channels_err = read_uint16('number of channels')
+	if not nbr_channels then return nil, nbr_channels_err end
+	if nbr_channels ~= 1 then
+		return nil, 'Invalid number of channels, expected 1 (Mono): ' .. tostring(nbr_channels)
+	end
+	-- Read "Frequency"
+	local sample_rate, sample_rate_err = read_uint32('sample rate')
+	if not sample_rate then return nil, sample_rate_err end
+	if sample_rate ~= 44100 then
+		return nil, 'Invalid sample rate, expected 44100 (Hz): ' .. tostring(sample_rate)
+	end
+	-- Read "BytePerSec"
+	local byte_per_sec, byte_per_sec_err = read_uint32('byte per second')
+	if not byte_per_sec then return nil, byte_per_sec_err end
+	-- Read "BytePerBloc"
+	local byte_per_chunk, byte_per_chunk_err = read_uint16('byte per chunk')
+	if not byte_per_chunk then return nil, byte_per_chunk_err end
+	-- Read "BitsPerSample"
+	local bits_per_sample, bits_per_sample_err = read_uint16('bits per sample')
+	if not bits_per_sample then return nil, bits_per_sample_err end
+	if bits_per_sample ~= 16 then
+		return nil, 'Invalid bits per sample, expected 16: ' .. tostring(bits_per_sample)
+	end
+	-- Remaining checks
+	local expected_byte_per_chunk = nbr_channels * bits_per_sample / 8
+	if byte_per_chunk ~= expected_byte_per_chunk then
+		return nil,
+			'Invalid byte per chunk, expected ' .. tostring(expected_byte_per_chunk) .. ': ' .. tostring(byte_per_chunk)
+	end
+	local expected_byte_per_sec = sample_rate * expected_byte_per_chunk
+	if byte_per_sec ~= expected_byte_per_sec then
+		return nil,
+			'Invalid byte per second, expected ' .. tostring(expected_byte_per_sec) .. ': ' .. tostring(byte_per_sec)
+	end
+
+	--[[ Read "data" chunk ]]
+	local _, data_chunk_jump_err = wav_file:seek('set', data_chunk_position)
+	if data_chunk_jump_err then
+		return nil, 'Failed to jump to "data" chunk: ' .. tostring(data_chunk_jump_err)
+	end
+	local chunk_end = wav_file:seek() + data_chunk_size
+	local samples = {} ---@type number[]
+	local samples_index = 1
+	while wav_file:seek() < chunk_end do
+		local integer_sample, sample_err = read_int16('sample')
+		if not integer_sample then return nil, sample_err end
+		local float_sample = integer_sample / 32768
+		samples[samples_index] = float_sample
+		samples_index = samples_index + 1
+	end
+	local expected_samples_length = data_chunk_size / (bits_per_sample / 8)
+	if #samples ~= expected_samples_length then
+		return nil,
+			'Invalid number of samples, expected ' .. tostring(expected_samples_length) .. ': ' .. tostring(#samples)
+	end
+
+	wav_file:close()
+	return samples, nil
 end
 
 return wav
