@@ -69,6 +69,30 @@ function wav.load(path)
 		return int, nil
 	end
 
+	---Read the next 4 bytes as a float32.
+	---@param name string
+	---@return number|nil, string|nil
+	---@nodiscard
+	local function read_float32(name)
+		local raw, raw_err = read_string(4, name)
+		if not raw then return nil, raw_err end
+		local byte1, byte2, byte3, byte4 = string.byte(raw, 1, 4)
+		if not byte1 or not byte2 or not byte3 or not byte4 then
+			return nil, 'Failed to read ' .. tostring(name) .. ' bytes, possibly early EOF'
+		end
+		local sign = (byte4 >= 0x80) and -1 or 1
+		local exponent = ((byte4 % 0x80) * 2) + math.floor(byte3 / 0x80)
+		local mantissa = (byte3 % 0x80) * 0x10000 + byte2 * 0x100 + byte1
+		if exponent == 0 then
+			return sign * (mantissa / 0x800000) * 2 ^ -126  -- Denormalized
+		elseif exponent == 0xff then
+			local value = (mantissa == 0) and (sign * math.huge) or (0 / 0)
+			return nil, 'Invalid ' .. tostring(name) .. ', got Inf/NaN: ' .. tostring(value)
+		else
+			return sign * (1 + mantissa / 0x800000) * 2 ^ (exponent - 0x7f)
+		end
+	end
+
 	--[[ Read master "RIFF" chunk ]]
 	-- Read "FileTypeBlocID"
 	local file_type_chunk_id, file_type_chunk_id_err = read_string(4, 'file type chunk ID')
@@ -142,8 +166,8 @@ function wav.load(path)
 	-- Read "AudioFormat"
 	local audio_format, audio_format_err = read_uint(2, 'audio format')
 	if not audio_format then return nil, audio_format_err end
-	if audio_format ~= 1 then
-		return nil, 'Invalid audio format, expected 1 (PCM integer): ' .. tostring(audio_format)
+	if audio_format ~= 1 and audio_format ~= 3 then
+		return nil, 'Invalid audio format, expected 1 (PCM integer) or 3 (IEEE 754 float): ' .. tostring(audio_format)
 	end
 	-- Read "NbrChannels"
 	local nbr_channels, nbr_channels_err = read_uint(2, 'number of channels')
@@ -166,8 +190,10 @@ function wav.load(path)
 	-- Read "BitsPerSample"
 	local bits_per_sample, bits_per_sample_err = read_uint(2, 'bits per sample')
 	if not bits_per_sample then return nil, bits_per_sample_err end
-	if bits_per_sample ~= 8 and bits_per_sample ~= 16 and bits_per_sample ~= 24 and bits_per_sample ~= 32 then
-		return nil, 'Invalid bits per sample, expected 8 or 16 or 24 or 32: ' .. tostring(bits_per_sample)
+	if audio_format == 1 and (bits_per_sample ~= 8 and bits_per_sample ~= 16 and bits_per_sample ~= 24 and bits_per_sample ~= 32) then
+		return nil, 'Invalid bits per sample, expected 8, 16, 24 or 32 (bit) for audio format 1 (PCM integer): ' .. tostring(bits_per_sample)
+	elseif audio_format == 3 and (bits_per_sample ~= 32) then
+		return nil, 'Invalid bits per sample, expected 32 (bit) for audio format 3 (IEEE 754 float): ' .. tostring(bits_per_sample)
 	end
 	-- Remaining checks
 	local expected_byte_per_chunk = nbr_channels * bits_per_sample / 8
@@ -193,14 +219,20 @@ function wav.load(path)
 	local samples_index = 1
 	while wav_file:seek() < chunk_end do
 		local float_sample ---@type number
-		if bits_per_sample == 8 then
-			local uint_sample, sample_err = read_uint(bytes_per_sample, 'sample')
-			if not uint_sample then return nil, sample_err end
-			float_sample = (uint_sample - to_float_divisor) / to_float_divisor
-		else
-			local int_sample, sample_err = read_int(bytes_per_sample, 'sample')
-			if not int_sample then return nil, sample_err end
-			float_sample = int_sample / to_float_divisor
+		if audio_format == 1 then
+			if bits_per_sample == 8 then
+				local uint_sample, sample_err = read_uint(bytes_per_sample, 'sample')
+				if not uint_sample then return nil, sample_err end
+				float_sample = (uint_sample - to_float_divisor) / to_float_divisor
+			else
+				local int_sample, sample_err = read_int(bytes_per_sample, 'sample')
+				if not int_sample then return nil, sample_err end
+				float_sample = int_sample / to_float_divisor
+			end
+		elseif audio_format == 3 then
+			local float_sample_raw, sample_err = read_float32('sample')
+			if not float_sample_raw then return nil, sample_err end
+			float_sample = float_sample_raw
 		end
 		samples[samples_index] = float_sample
 		samples_index = samples_index + 1
