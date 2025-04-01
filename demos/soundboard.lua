@@ -1,8 +1,11 @@
 local fensteraudio = require('fensteraudio')
-local wav = require('demos.lib.wav')
 
 -- Hack to get the current script directory
 local dirname = './' .. (debug.getinfo(1, 'S').source:match('^@?(.*[/\\])') or '') ---@type string
+-- Add the project root directory to the package path
+package.path = dirname .. '../?.lua;' .. package.path
+
+local wav = require('demos.lib.wav')
 
 ---@type string[] List of sound files
 ---

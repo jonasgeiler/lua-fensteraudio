@@ -22,7 +22,7 @@ function wav.load(path)
 	---@return string|nil, string|nil
 	---@nodiscard
 	local function read_string(bytes, name)
-		local str = wav_file:read(bytes) ---@type string
+		local str = wav_file:read(bytes) ---@type string|nil
 		if not str or #str ~= bytes then
 			return nil, 'Failed to read ' .. tostring(name) .. ', possibly early EOF'
 		end
