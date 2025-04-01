@@ -2,6 +2,7 @@ local tostring = tostring
 local io = io
 local string = string
 local math = math
+local fensteraudio = require('fensteraudio')
 
 local wav = {}
 
@@ -181,8 +182,10 @@ function wav.load(path)
 	-- Read "Frequency"
 	local sample_rate, sample_rate_err = read_uint(4, 'sample rate')
 	if not sample_rate then return nil, sample_rate_err end
-	if sample_rate ~= 44100 then
-		return nil, 'Unsupported sample rate, expected 44100 (Hz): ' .. tostring(sample_rate)
+	if sample_rate ~= fensteraudio.samplerate then
+		return nil,
+			'Unsupported sample rate, expected ' ..
+			tostring(fensteraudio.samplerate) .. ' (Hz): ' .. tostring(sample_rate)
 	end
 	-- Read "BytePerSec"
 	local byte_per_sec, byte_per_sec_err = read_uint(4, 'byte per second')
