@@ -58,6 +58,7 @@ local sound_files = {
 local audiodevice = fensteraudio.open()
 
 -- Print list of sound files
+-- TODO: Rewrite without using goto
 ::list::
 print('Available sound files:')
 local max_index_length = #tostring(#sound_files)
