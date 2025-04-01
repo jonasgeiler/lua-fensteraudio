@@ -84,11 +84,13 @@ function wav.load(path)
 		local exponent = ((byte4 % 0x80) * 2) + math.floor(byte3 / 0x80)
 		local mantissa = (byte3 % 0x80) * 0x10000 + byte2 * 0x100 + byte1
 		if exponent == 0 then
-			return sign * (mantissa / 0x800000) * 2 ^ -126  -- Denormalized
+			-- Denormalize
+			return sign * (mantissa / 0x800000) * 2 ^ -126
 		elseif exponent == 0xff then
 			local value = (mantissa == 0) and (sign * math.huge) or (0 / 0)
 			return nil, 'Invalid ' .. tostring(name) .. ', got Inf/NaN: ' .. tostring(value)
 		else
+			-- Normalize
 			return sign * (1 + mantissa / 0x800000) * 2 ^ (exponent - 0x7f)
 		end
 	end
@@ -167,7 +169,8 @@ function wav.load(path)
 	local audio_format, audio_format_err = read_uint(2, 'audio format')
 	if not audio_format then return nil, audio_format_err end
 	if audio_format ~= 1 and audio_format ~= 3 then
-		return nil, 'Unsupported audio format, expected 1 (PCM integer) or 3 (IEEE 754 float): ' .. tostring(audio_format)
+		return nil,
+			'Unsupported audio format, expected 1 (PCM integer) or 3 (IEEE 754 float): ' .. tostring(audio_format)
 	end
 	-- Read "NbrChannels"
 	local nbr_channels, nbr_channels_err = read_uint(2, 'number of channels')
@@ -190,10 +193,15 @@ function wav.load(path)
 	-- Read "BitsPerSample"
 	local bits_per_sample, bits_per_sample_err = read_uint(2, 'bits per sample')
 	if not bits_per_sample then return nil, bits_per_sample_err end
-	if audio_format == 1 and (bits_per_sample ~= 8 and bits_per_sample ~= 16 and bits_per_sample ~= 24 and bits_per_sample ~= 32) then
-		return nil, 'Unsupported bits per sample, expected 8, 16, 24 or 32 (bit) for audio format 1 (PCM integer): ' .. tostring(bits_per_sample)
+	if audio_format == 1 and
+		(bits_per_sample ~= 8 and bits_per_sample ~= 16 and bits_per_sample ~= 24 and bits_per_sample ~= 32) then
+		return nil,
+			'Unsupported bits per sample, expected 8, 16, 24 or 32 (bit) for audio format 1 (PCM integer): ' ..
+			tostring(bits_per_sample)
 	elseif audio_format == 3 and (bits_per_sample ~= 32) then
-		return nil, 'Unsupported bits per sample, expected 32 (bit) for audio format 3 (IEEE 754 float): ' .. tostring(bits_per_sample)
+		return nil,
+			'Unsupported bits per sample, expected 32 (bit) for audio format 3 (IEEE 754 float): ' ..
+			tostring(bits_per_sample)
 	end
 	-- Remaining checks
 	local expected_byte_per_chunk = nbr_channels * bits_per_sample / 8
