@@ -120,25 +120,29 @@ while true do
 
 	-- Get the name of the sound file
 	local sound_file = sound_files[sound_file_index]
-	print('Playing "' .. sound_file .. '"...')
 
 	-- Load the audio
-	local audio_buffer = assert(wav.load(dirname .. 'assets/' .. sound_file))
-	local audio_buffer_len = #audio_buffer
-	local audio_buffer_pos = 1
+	local samples, samples_err = wav.load(dirname .. 'assets/' .. sound_file)
+	if not samples then
+		print('Error loading sound file: ' .. samples_err)
+		goto continue
+	end
+	local samples_length = #samples
+	local samples_position = 1
 
 	-- Play the audio
-	local curr_audio_buffer = {} ---@type number[]
-	while audio_buffer_pos <= audio_buffer_len do
+	print('Playing "' .. sound_file .. '"...')
+	local curr_samples = {} ---@type number[]
+	while samples_position <= samples_length do
 		local available = audiodevice:available()
 		if available > 0 then
-			local curr_audio_buffer_len = math.min(available, audio_buffer_len - (audio_buffer_pos - 1))
-			if curr_audio_buffer_len > 0 then
-				for i = 1, curr_audio_buffer_len do
-					curr_audio_buffer[i] = audio_buffer[audio_buffer_pos]
-					audio_buffer_pos = audio_buffer_pos + 1
+			local curr_samples_length = math.min(available, samples_length - (samples_position - 1))
+			if curr_samples_length > 0 then
+				for i = 1, curr_samples_length do
+					curr_samples[i] = samples[samples_position]
+					samples_position = samples_position + 1
 				end
-				audiodevice:write(curr_audio_buffer, curr_audio_buffer_len)
+				audiodevice:write(curr_samples, curr_samples_length)
 			end
 		end
 	end
