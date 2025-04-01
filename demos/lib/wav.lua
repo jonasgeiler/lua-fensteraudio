@@ -98,7 +98,7 @@ function wav.load(path)
 	local file_type_chunk_id, file_type_chunk_id_err = read_string(4, 'file type chunk ID')
 	if not file_type_chunk_id then return nil, file_type_chunk_id_err end
 	if file_type_chunk_id ~= 'RIFF' then
-		return nil, 'Invalid file type chunk ID, expected "RIFF": ' .. tostring(file_type_chunk_id)
+		return nil, 'Unsupported file type chunk ID, expected "RIFF": ' .. tostring(file_type_chunk_id)
 	end
 	-- Read "FileSize"
 	local file_size, file_size_err = read_uint(4, 'file size')
@@ -110,7 +110,7 @@ function wav.load(path)
 	local file_format_id, file_format_id_err = read_string(4, 'file format ID')
 	if not file_format_id then return nil, file_format_id_err end
 	if file_format_id ~= 'WAVE' then
-		return nil, 'Invalid file format ID, expected "WAVE": ' .. tostring(file_format_id)
+		return nil, 'Unsupported file format ID, expected "WAVE": ' .. tostring(file_format_id)
 	end
 
 	local format_chunk_position = -1
@@ -167,19 +167,19 @@ function wav.load(path)
 	local audio_format, audio_format_err = read_uint(2, 'audio format')
 	if not audio_format then return nil, audio_format_err end
 	if audio_format ~= 1 and audio_format ~= 3 then
-		return nil, 'Invalid audio format, expected 1 (PCM integer) or 3 (IEEE 754 float): ' .. tostring(audio_format)
+		return nil, 'Unsupported audio format, expected 1 (PCM integer) or 3 (IEEE 754 float): ' .. tostring(audio_format)
 	end
 	-- Read "NbrChannels"
 	local nbr_channels, nbr_channels_err = read_uint(2, 'number of channels')
 	if not nbr_channels then return nil, nbr_channels_err end
 	if nbr_channels ~= 1 then
-		return nil, 'Invalid number of channels, expected 1 (Mono): ' .. tostring(nbr_channels)
+		return nil, 'Unsupported number of channels, expected 1 (Mono): ' .. tostring(nbr_channels)
 	end
 	-- Read "Frequency"
 	local sample_rate, sample_rate_err = read_uint(4, 'sample rate')
 	if not sample_rate then return nil, sample_rate_err end
 	if sample_rate ~= 44100 then
-		return nil, 'Invalid sample rate, expected 44100 (Hz): ' .. tostring(sample_rate)
+		return nil, 'Unsupported sample rate, expected 44100 (Hz): ' .. tostring(sample_rate)
 	end
 	-- Read "BytePerSec"
 	local byte_per_sec, byte_per_sec_err = read_uint(4, 'byte per second')
@@ -191,9 +191,9 @@ function wav.load(path)
 	local bits_per_sample, bits_per_sample_err = read_uint(2, 'bits per sample')
 	if not bits_per_sample then return nil, bits_per_sample_err end
 	if audio_format == 1 and (bits_per_sample ~= 8 and bits_per_sample ~= 16 and bits_per_sample ~= 24 and bits_per_sample ~= 32) then
-		return nil, 'Invalid bits per sample, expected 8, 16, 24 or 32 (bit) for audio format 1 (PCM integer): ' .. tostring(bits_per_sample)
+		return nil, 'Unsupported bits per sample, expected 8, 16, 24 or 32 (bit) for audio format 1 (PCM integer): ' .. tostring(bits_per_sample)
 	elseif audio_format == 3 and (bits_per_sample ~= 32) then
-		return nil, 'Invalid bits per sample, expected 32 (bit) for audio format 3 (IEEE 754 float): ' .. tostring(bits_per_sample)
+		return nil, 'Unsupported bits per sample, expected 32 (bit) for audio format 3 (IEEE 754 float): ' .. tostring(bits_per_sample)
 	end
 	-- Remaining checks
 	local expected_byte_per_chunk = nbr_channels * bits_per_sample / 8
