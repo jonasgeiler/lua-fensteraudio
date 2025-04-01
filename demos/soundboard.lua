@@ -54,22 +54,24 @@ local sound_files = {
 	'window_break.wav',
 }
 
+---Prints there list of available sound files
+local function print_list()
+	print('Available sound files:')
+	local max_index_length = #tostring(#sound_files)
+	for i = 1, #sound_files do
+		local index_length = #tostring(i)
+		print(string.rep(' ', max_index_length - index_length) .. i .. '. ' .. sound_files[i])
+	end
+end
+
+---Print the list initially
+print_list()
+
 -- Open an audiodevice
 local audiodevice = fensteraudio.open()
 
--- Print list of sound files
--- TODO: Rewrite without using goto
-::list::
-print('Available sound files:')
-local max_index_length = #tostring(#sound_files)
-for i = 1, #sound_files do
-	local index_length = #tostring(i)
-	print(string.rep(' ', max_index_length - index_length) .. i .. '. ' .. sound_files[i])
-end
-
 -- Soundboard interface loop
 while true do
-	::continue::
 	collectgarbage() -- Collect garbage to make sure loaded audio is released
 
 	-- Prompt the user to enter the sound file index
@@ -81,69 +83,65 @@ while true do
 
 	-- Handle special commands
 	if not sound_file_index_raw or sound_file_index_raw == '' then
-		goto continue
-	end
-	if sound_file_index_raw == 'q'
+		-- Do nothing
+	elseif sound_file_index_raw == 'q'
 		or sound_file_index_raw == 'quit'
 		or sound_file_index_raw == 'e'
 		or sound_file_index_raw == 'exit' then
 		break
-	end
-	if sound_file_index_raw == 'l'
+	elseif sound_file_index_raw == 'l'
 		or sound_file_index_raw == 'ls'
 		or sound_file_index_raw == 'list' then
-		goto list
-	end
-	if sound_file_index_raw == 'h'
+		print_list()
+	elseif sound_file_index_raw == 'h'
 		or sound_file_index_raw == 'help' then
 		print('Enter the name or index of a sound file to play it.')
 		print('Enter "l" or "list" to list the available sound files.')
 		print('Enter "q" or "quit" to quit.')
-		goto continue
-	end
-
-	-- Parse the sound file index
-	local sound_file_index = tonumber(sound_file_index_raw)
-	if not sound_file_index or sound_file_index < 1 or sound_file_index > #sound_files then
-		local found = false
-		for i = 1, #sound_files do
-			if sound_files[i] == sound_file_index_raw then
-				found = true
-				sound_file_index = i
-				break
+	else
+		-- Parse the sound file index
+		local sound_file_index = tonumber(sound_file_index_raw)
+		local found = true
+		if not sound_file_index or sound_file_index < 1 or sound_file_index > #sound_files then
+			found = false
+			for i = 1, #sound_files do
+				if sound_files[i] == sound_file_index_raw then
+					found = true
+					sound_file_index = i
+					break
+				end
 			end
 		end
 		if not found then
 			print('Invalid sound file index or name.')
-			goto continue
-		end
-	end
+		else
+			-- Get the name of the sound file
+			local sound_file = sound_files[sound_file_index]
 
-	-- Get the name of the sound file
-	local sound_file = sound_files[sound_file_index]
+			-- Load the audio
+			local samples, samples_err = wav.load(dirname .. 'assets/' .. sound_file)
+			if not samples then
+				print('Error loading sound file: ' .. samples_err)
+			else
+				local samples_length = #samples
+				local samples_position = 1
 
-	-- Load the audio
-	local samples, samples_err = wav.load(dirname .. 'assets/' .. sound_file)
-	if not samples then
-		print('Error loading sound file: ' .. samples_err)
-		goto continue
-	end
-	local samples_length = #samples
-	local samples_position = 1
-
-	-- Play the audio
-	print('Playing "' .. sound_file .. '"...')
-	local curr_samples = {} ---@type number[]
-	while samples_position <= samples_length do
-		local available = audiodevice:available()
-		if available > 0 then
-			local curr_samples_length = math.min(available, samples_length - (samples_position - 1))
-			if curr_samples_length > 0 then
-				for i = 1, curr_samples_length do
-					curr_samples[i] = samples[samples_position]
-					samples_position = samples_position + 1
+				-- Play the audio
+				print('Playing "' .. sound_file .. '"...')
+				local curr_samples = {} ---@type number[]
+				while samples_position <= samples_length do
+					local available = audiodevice:available()
+					if available > 0 then
+						local curr_samples_length = math.min(available, samples_length - (samples_position - 1))
+						if curr_samples_length > 0 then
+							for i = 1, curr_samples_length do
+								curr_samples[i] = samples[samples_position]
+								samples_position = samples_position + 1
+							end
+							audiodevice:write(curr_samples, curr_samples_length)
+						end
+					end
 				end
-				audiodevice:write(curr_samples, curr_samples_length)
 			end
 		end
 	end
